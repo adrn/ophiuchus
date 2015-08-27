@@ -19,4 +19,4 @@ def get_extensions():
     cfg['sources'].append(os.path.join(gary_incl_path, '_cbuiltin.c'))
     cfg['libraries'] = ['gsl', 'gslcblas']
 
-    return [Extension('biff._potential', **cfg)]
+    return [Extension('ophiuchus.potential._potential', **cfg)]

@@ -1,0 +1,1 @@
+from ._potential import WangZhaoBarPotential,OphiuchusPotential
