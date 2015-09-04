@@ -30,9 +30,11 @@ from gary.potential.cpotential import CPotentialBase
 cdef extern from "src/_potential.h":
     double wang_zhao_bar_value(double t, double *pars, double *q) nogil
     void wang_zhao_bar_gradient(double t, double *pars, double *q, double *grad) nogil
+    double wang_zhao_bar_density(double t, double *pars, double *q) nogil
 
     double ophiuchus_value(double t, double *pars, double *q) nogil
     void ophiuchus_gradient(double t, double *pars, double *q, double *grad) nogil
+    double ophiuchus_density(double t, double *pars, double *q) nogil
 
 cdef class _WangZhaoBarPotential(_CPotential):
     def __cinit__(self, double G, double m, double r_s, double alpha, double Omega):
@@ -40,6 +42,7 @@ cdef class _WangZhaoBarPotential(_CPotential):
         self._parameters = &(self._parvec[0])
         self.c_value = &wang_zhao_bar_value
         self.c_gradient = &wang_zhao_bar_gradient
+        self.c_density = &wang_zhao_bar_density
 
 class WangZhaoBarPotential(CPotentialBase):
     r"""
