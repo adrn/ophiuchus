@@ -20,4 +20,4 @@ if not _ASTROPY_SETUP_:
     barred_mw = OphiuchusPotential()
     static_mw = OphiuchusPotential(bar=dict(m=0.),
                                    spheroid=dict(m=1E10, c=0.2),
-                                   disk=dict(m=6.E10))
+                                   disk=dict(m=6.5E10))
