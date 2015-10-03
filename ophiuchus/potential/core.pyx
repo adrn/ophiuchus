@@ -92,6 +92,7 @@ cdef class _OphiuchusPotential(_CPotential):
         self._parameters = &(self._parvec[0])
         self.c_value = &ophiuchus_value
         self.c_gradient = &ophiuchus_gradient
+        self.c_density = &ophiuchus_density
 
 class OphiuchusPotential(CPotentialBase):
     r"""
