@@ -46,16 +46,16 @@ cdef class _WangZhaoBarPotential(_CPotential):
 
 class WangZhaoBarPotential(CPotentialBase):
     r"""
-    WangZhaoBarPotential(units, TODO)
+    WangZhaoBarPotential(m, r_s, alpha, Omega, units)
 
     TODO:
 
     Parameters
     ----------
+    TODO
     units : iterable
         Unique list of non-reducable units that specify (at minimum) the
         length, mass, time, and angle units.
-    TODO
 
     """
     def __init__(self, m, r_s, alpha, Omega, units=galactic):
@@ -80,15 +80,15 @@ cdef class _OphiuchusPotential(_CPotential):
 
     def __cinit__(self, double G, double m_spher, double c,
                   double G2, double m_disk, double a, double b,
-                  double v_c, double r_s,
-                  double G3, double m_bar, double a_bar, double alpha, double Omega
+                  double G3, double v_c, double r_s, double q_z,
+                  double G4, double m_bar, double a_bar, double alpha, double Omega
                   ):
         # alpha = initial bar angle
         # Omega = pattern speed
-        self._parvec = np.array([G,m_spher,c,
-                                 G,m_disk,a,b,
-                                 v_c, r_s,
-                                 G,m_bar,a_bar,alpha,Omega])
+        self._parvec = np.array([G, m_spher, c, # 0,1,2
+                                 G2, m_disk, a, b, # 3,4,5,6
+                                 G3, v_c, r_s, q_z, # 7,8,9,10
+                                 G4, m_bar, a_bar, alpha, Omega]) # 11,12,13,14,15
         self._parameters = &(self._parvec[0])
         self.c_value = &ophiuchus_value
         self.c_gradient = &ophiuchus_gradient
@@ -109,7 +109,7 @@ class OphiuchusPotential(CPotentialBase):
     disk : dict
         Dictionary of parameter values for a :class:`MiyamotoNagaiPotential`.
     halo : dict
-        Dictionary of parameter values for a :class:`SphericalNFWPotential`.
+        Dictionary of parameter values for a :class:`FlattenedNFWPotential`.
     bar : dict
         Dictionary of parameter values for a :class:`TODO`.
 
@@ -117,10 +117,11 @@ class OphiuchusPotential(CPotentialBase):
     def __init__(self, units=galactic, spheroid=dict(), disk=dict(), halo=dict(), bar=dict()):
         self.G = G.decompose(units).value
         self.parameters = dict()
-        default_spheroid = dict(m=4E9, c=0.1)
+        default_spheroid = dict(m=0., c=0.1)
         default_disk = dict(m=5.E10, a=3, b=0.28) # similar to Bovy
-        default_halo = dict(v_c=0.21, r_s=30.)
-        default_bar = dict(m=1.E10, r_s=2.5, alpha=0.349065850398, Omega=0.06136272990322247) # from Wang, Zhao, et al.
+        default_halo = dict(v_c=0.19, r_s=30., q_z=0.9)
+        default_bar = dict(m=1.8E10 / 1.15, r_s=1.,
+                           alpha=0.349065850398, Omega=0.06136272990322247) # from Wang, Zhao, et al.
 
         for k,v in default_disk.items():
             if k not in disk:
@@ -158,11 +159,13 @@ class OphiuchusPotential(CPotentialBase):
         c_params['b'] = disk['b']
 
         # halo
+        c_params['G3'] = self.G
         c_params['v_c'] = halo['v_c']
         c_params['r_s'] = halo['r_s']
+        c_params['q_z'] = halo['q_z']
 
         # bar
-        c_params['G3'] = self.G
+        c_params['G4'] = self.G
         c_params['m_bar'] = bar['m']
         c_params['a_bar'] = bar['r_s']
         c_params['alpha'] = bar['alpha']
