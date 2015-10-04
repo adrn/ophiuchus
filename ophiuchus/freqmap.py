@@ -138,13 +138,13 @@ class Freqmap(OphOrbitGridExperiment):
             dEmax = dE.max() / np.abs(E[0])
             logger.debug('max(∆E) = {0:.2e}'.format(dEmax))
 
-        if dEmax > c['energy_tolerance']:
-            logger.warning("Failed due to energy conservation check.")
-            result['freqs'] = np.ones((2,3))*np.nan
-            result['success'] = False
-            result['error_code'] = 2
-            result['dE_max'] = dEmax
-            return result
+        # if dEmax > c['energy_tolerance']:
+        #     logger.warning("Failed due to energy conservation check.")
+        #     result['freqs'] = np.ones((2,3))*np.nan
+        #     result['success'] = False
+        #     result['error_code'] = 2
+        #     result['dE_max'] = dEmax
+        #     return result
 
         # start finding the frequencies -- do first half then second half
         sf1 = SuperFreq(t[:nsteps//2+1], p=c['hamming_p'])
