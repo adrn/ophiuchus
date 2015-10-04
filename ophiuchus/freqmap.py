@@ -105,7 +105,8 @@ class Freqmap(OphOrbitGridExperiment):
         try:
             dt, nsteps = estimate_dt_nsteps(w0.copy(), potential,
                                             c['nperiods'],
-                                            c['nsteps_per_period'])
+                                            c['nsteps_per_period'],
+                                            dE_threshold=None)
         except RuntimeError:
             logger.warning("Failed to integrate orbit when estimating dt,nsteps")
             result['freqs'] = np.ones((2,3))*np.nan
