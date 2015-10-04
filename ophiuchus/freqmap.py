@@ -55,7 +55,7 @@ class OphOrbitGridExperiment(OrbitGridExperiment):
             pickle.dump(res, f)
         return tmpfile
 
-class Freqmap(OrbitGridExperiment):
+class Freqmap(OphOrbitGridExperiment):
     # failure error codes
     error_codes = {
         1: "Failed to integrate orbit or estimate dt, nsteps.",
