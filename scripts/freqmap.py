@@ -9,7 +9,7 @@ import sys
 
 # project
 from streammorphology import ExperimentRunner
-from streammorphology.freqmap import Freqmap
+from ophiuchus.freqmap import Freqmap
 
 runner = ExperimentRunner(ExperimentClass=Freqmap)
 runner.run()
