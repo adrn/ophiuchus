@@ -1,10 +1,9 @@
 Modeling the Ophiuchus stream
 =============================
 
-Yep.
-
 Dependencies
 ------------
 
-* Gary
-* Biff
+* [Gary](https://github.com/adrn/gary)
+* [Biff](https://github.com/adrn/biff)
+* [Stream-Morphology](https://github.com/adrn/StreamMorphology)
