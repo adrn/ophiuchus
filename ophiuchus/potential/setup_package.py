@@ -27,5 +27,6 @@ def get_extensions():
     cfg['sources'].append(os.path.join(biff_incl_path, 'bfe.c'))
     cfg['sources'].append(os.path.join(biff_incl_path, 'bfe_helper.c'))
     cfg['libraries'] = ['gsl', 'gslcblas']
+    cfg['extra_compile_args'] = ['--std=gnu99']
 
     return [Extension('ophiuchus.potential._potential', **cfg)]
