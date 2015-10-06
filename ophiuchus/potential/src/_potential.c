@@ -135,9 +135,11 @@ void ophiuchus_gradient(double t, double *pars, double *r, double *grad) {
     double tmp_grad[3];
     int i;
 
+    for (i=0; i<3; i++) grad[i] = 0;
+
     if (pars[1] > 0) {
         hernquist_gradient(0., &pars[0], &r[0], &tmp_grad[0]);
-        for (i=0; i<3; i++) grad[i] = tmp_grad[i];
+        for (i=0; i<3; i++) grad[i] += tmp_grad[i];
     }
 
     if (pars[4] > 0) {
