@@ -122,7 +122,6 @@ cpdef make_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
 
     # store initial conditions
     i = 0
-    print(w.shape[0])
     for j in range(nsteps-1):
         if (j % release_every) != 0:
             continue
