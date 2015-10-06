@@ -97,7 +97,7 @@ cdef void v_sph_to_car(double *xyz, double *vsph, double *vxyz):
 cpdef make_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
                   int release_every, double G, double prog_mass,
                   double rscale, double vscale,
-                  double atol, double rtol):
+                  double atol, double rtol, int nmax=0):
     """
     generate_stream(cpotential, t, prog_w, release_every, G, prog_mass, rscale, vscale, atol, rtol)
     """
@@ -140,7 +140,7 @@ cpdef make_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
 
         menc = cpotential._mass_enclosed(t[j], &prog_w[j,0], &eps[0], G)
         sigmar = rscale * (prog_mass / menc)**(1/3.) * \
-                  sqrt(prog_w[j,0]**2 + prog_w[j,1]**2 + prog_w[j,2]**2) / 2.
+                  sqrt(prog_w[j,0]**2 + prog_w[j,1]**2 + prog_w[j,2]**2)# / 2.
         sigmav = vscale * (prog_mass / menc)**(1/3.) * \
                   sqrt(prog_w[j,3]**2 + prog_w[j,4]**2 + prog_w[j,5]**2) / 2.
 
@@ -180,7 +180,7 @@ cpdef make_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
         res = dop853(this_ndim, <FcnEqDiff> Fwrapper,
                      <GradFn>cpotential.c_gradient, &(cpotential._parameters[0]), this_norbits,
                      t[j], &w[0], t[j+1], &rtol, &atol, 0, NULL, 0,
-                     NULL, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, dt0, 0, 0, 1, 0, NULL, 0);
+                     NULL, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, dt0, nmax, 0, 1, 0, NULL, 0);
 
         if res == -1:
             raise RuntimeError("Input is not consistent.")
