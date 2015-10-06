@@ -115,10 +115,19 @@ double wang_zhao_bar_density(double t, double *pars, double *r) {
 
 double ophiuchus_value(double t, double *pars, double*r) {
     double v = 0.;
-    v += hernquist_value(0., &pars[0], &r[0]);
-    v += miyamotonagai_value(0., &pars[3], &r[0]);
-    v += flattenednfw_value(0., &pars[7], &r[0]);
-    v += wang_zhao_bar_value(t, &pars[11], &r[0]);
+
+    if (pars[1] > 0) {
+        v += hernquist_value(0., &pars[0], &r[0]);
+    }
+    if (pars[4] > 0) {
+        v += miyamotonagai_value(0., &pars[3], &r[0]);
+    }
+    if (pars[8] > 0) {
+        v += flattenednfw_value(0., &pars[7], &r[0]);
+    }
+    if (pars[12] > 0) {
+        v += wang_zhao_bar_value(t, &pars[11], &r[0]);
+    }
     return v;
 }
 
@@ -126,24 +135,41 @@ void ophiuchus_gradient(double t, double *pars, double *r, double *grad) {
     double tmp_grad[3];
     int i;
 
-    hernquist_gradient(0., &pars[0], &r[0], &tmp_grad[0]);
-    for (i=0; i<3; i++) grad[i] = tmp_grad[i];
+    if (pars[1] > 0) {
+        hernquist_gradient(0., &pars[0], &r[0], &tmp_grad[0]);
+        for (i=0; i<3; i++) grad[i] = tmp_grad[i];
+    }
 
-    miyamotonagai_gradient(0., &pars[3], &r[0], &tmp_grad[0]);
-    for (i=0; i<3; i++) grad[i] += tmp_grad[i];
+    if (pars[4] > 0) {
+        miyamotonagai_gradient(0., &pars[3], &r[0], &tmp_grad[0]);
+        for (i=0; i<3; i++) grad[i] += tmp_grad[i];
+    }
 
-    flattenednfw_gradient(0., &pars[7], &r[0], &tmp_grad[0]);
-    for (i=0; i<3; i++) grad[i] += tmp_grad[i];
+    if (pars[8] > 0) {
+        flattenednfw_gradient(0., &pars[7], &r[0], &tmp_grad[0]);
+        for (i=0; i<3; i++) grad[i] += tmp_grad[i];
+    }
 
-    wang_zhao_bar_gradient(t, &pars[11], &r[0], &tmp_grad[0]);
-    for (i=0; i<3; i++) grad[i] += tmp_grad[i];
+    if (pars[12] > 0) {
+        wang_zhao_bar_gradient(t, &pars[11], &r[0], &tmp_grad[0]);
+        for (i=0; i<3; i++) grad[i] += tmp_grad[i];
+    }
 }
 
 double ophiuchus_density(double t, double *pars, double*r) {
     double v = 0.;
-    v += hernquist_density(0., &pars[0], &r[0]);
-    v += miyamotonagai_density(0., &pars[3], &r[0]);
-    v += flattenednfw_density(0., &pars[7], &r[0]);
-    v += wang_zhao_bar_density(t, &pars[11], &r[0]);
+
+    if (pars[1] > 0) {
+        v += hernquist_density(0., &pars[0], &r[0]);
+    }
+    if (pars[4] > 0) {
+        v += miyamotonagai_density(0., &pars[3], &r[0]);
+    }
+    if (pars[8] > 0) {
+        v += flattenednfw_density(0., &pars[7], &r[0]);
+    }
+    if (pars[12] > 0) {
+        v += wang_zhao_bar_density(t, &pars[11], &r[0]);
+    }
     return v;
 }
