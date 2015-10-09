@@ -95,11 +95,45 @@ cdef void v_sph_to_car(double *xyz, double *vsph, double *vxyz):
     vxyz[2] = vsph[0]*xyz[2]/d + dxy/d*vsph[2]
 
 cpdef make_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
-                  int release_every, double G, double prog_mass,
-                  double rscale, double vscale,
-                  double atol, double rtol, int nmax=0):
+                  int release_every,
+                  double G, double[::1] prog_mass,
+                  double pos_scatter_fac=0., double vel_scatter_fac=0., double rtide_fac=1.,
+                  double atol=1E-10, double rtol=1E-10, int nmax=0):
     """
-    generate_stream(cpotential, t, prog_w, release_every, G, prog_mass, rscale, vscale, atol, rtol)
+    make_stream(cpotential, t, prog_w, release_every, G, prog_mass, pos_scatter_fac, vel_scatter_fac, rtide_fac, atol, rtol, nmax)
+
+    Generate a mock stellar stream using the Streakline method.
+
+    Parameters
+    ----------
+    cpotential : `gary.potential._CPotential`
+        An instance of a ``_CPotential`` representing the gravitational potential.
+    t : `numpy.ndarray`
+        An array of times. Should have shape ``(ntimesteps,)``.
+    prog_w : `numpy.ndarray`
+        The 6D coordinates for the orbit of the progenitor system at all times.
+        Should have shape ``(ntimesteps,6)``.
+    release_every : int
+        Release particles at the Lagrange point every X timesteps.
+    G : numeric
+        The value of the gravitational constant, G, in the unit system used.
+    prog_mass : `numpy.ndarray`
+        The mass of the progenitor at each time. Should have shape ``(ntimesteps,)``.
+    pos_scatter_fac : numeric (optional)
+        A numerical factor to scale the scatter in position for released stars.
+        Default is 0 for the Streakline method.
+    vel_scatter_fac : numeric (optional)
+        A numerical factor to scale the scatter in velocity for released stars.
+        Default is 0 for the Streakline method.
+    rtide_fac : numeric (optional)
+        A numerical factor to scale the location of the Lagrange points, the tidal
+        radius. Default is 1. for the Streakline method.
+    atol : numeric (optional)
+        Passed to the integrator. Absolute tolerance parameter. Default is 1E-10.
+    rtol : numeric (optional)
+        Passed to the integrator. Relative tolerance parameter. Default is 1E-10.
+    nmax : int (optional)
+        Passed to the integrator.
     """
     cdef:
         int i, j, k
@@ -140,7 +174,7 @@ cpdef make_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
 
         menc = cpotential._mass_enclosed(t[j], &prog_w[j,0], &eps[0], G)
         sigmar = rscale * (prog_mass / menc)**(1/3.) * \
-                  sqrt(prog_w[j,0]**2 + prog_w[j,1]**2 + prog_w[j,2]**2)# / 2.
+                  sqrt(prog_w[j,0]**2 + prog_w[j,1]**2 + prog_w[j,2]**2) / 2.
         sigmav = vscale * (prog_mass / menc)**(1/3.) * \
                   sqrt(prog_w[j,3]**2 + prog_w[j,4]**2 + prog_w[j,5]**2) / 2.
 
