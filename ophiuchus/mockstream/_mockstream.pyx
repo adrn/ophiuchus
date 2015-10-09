@@ -97,10 +97,10 @@ cdef void v_sph_to_car(double *xyz, double *vsph, double *vxyz):
 cpdef make_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
                   int release_every,
                   double G, double[::1] prog_mass,
-                  double pos_scatter_fac=0., double vel_scatter_fac=0., double rtide_fac=1.,
+                  double pos_scatter_fac=0., double vel_disp=0., double rtide_fac=1.,
                   double atol=1E-10, double rtol=1E-10, int nmax=0):
     """
-    make_stream(cpotential, t, prog_w, release_every, G, prog_mass, pos_scatter_fac, vel_scatter_fac, rtide_fac, atol, rtol, nmax)
+    make_stream(cpotential, t, prog_w, release_every, G, prog_mass, pos_scatter_fac, vel_disp, rtide_fac, atol, rtol, nmax)
 
     Generate a mock stellar stream using the Streakline method.
 
@@ -122,9 +122,8 @@ cpdef make_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
     pos_scatter_fac : numeric (optional)
         A numerical factor to scale the scatter in position for released stars.
         Default is 0 for the Streakline method.
-    vel_scatter_fac : numeric (optional)
-        A numerical factor to scale the scatter in velocity for released stars.
-        Default is 0 for the Streakline method.
+    vel_disp : numeric (optional)
+        Velocity dispersion. Default is 0 for Streakline.
     rtide_fac : numeric (optional)
         A numerical factor to scale the location of the Lagrange points, the tidal
         radius. Default is 1. for the Streakline method.
@@ -144,17 +143,17 @@ cpdef make_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
         unsigned ndim_2 = ndim / 2
         double[::1] w = np.empty(norbits*ndim)
         double dt0 = t[1] - t[0]
-        double[::1] tmpv = np.zeros(3)
-        double sigmar, sigmav
+        double[::1] tmp = np.zeros(3)
+        double sigmar
 
         unsigned this_ndim, this_norbits
 
-        double r_tide
+        double r_tide, denom, dPhi_dr, Om2
 
         # ignore this
         double[::1] eps = np.zeros(3)
 
-    # store initial conditions
+    # first copy over initial conditions from progenitor orbit to each stripped star
     i = 0
     for j in range(nsteps-1):
         if (j % release_every) != 0:
@@ -166,44 +165,50 @@ cpdef make_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
 
         i += 1
 
-    # TODO: now go back and add scatter, tidal radius offset, etc.
+    # now go back to each set of initial conditions and add tidal radius offset,
+    #   scatter, etc.
     i = 0
     for j in range(nsteps-1):
         if (j % release_every) != 0:
             continue
 
-        menc = cpotential._mass_enclosed(t[j], &prog_w[j,0], &eps[0], G)
-        sigmar = rscale * (prog_mass / menc)**(1/3.) * \
-                  sqrt(prog_w[j,0]**2 + prog_w[j,1]**2 + prog_w[j,2]**2) / 2.
-        sigmav = vscale * (prog_mass / menc)**(1/3.) * \
-                  sqrt(prog_w[j,3]**2 + prog_w[j,4]**2 + prog_w[j,5]**2) / 2.
+        # get angular velocity of the progenitor
+        v_car_to_sph(&w[2*i*ndim], &w[2*i*ndim + 3], &tmp[0])
+        Om2 = tmp[1]*tmp[1] + tmp[2]*tmp[2]
+
+        # gradient of potential in radial direction
+        dPhi_dr = cpotential._d_dr(t[j], &prog_w[j,0], &eps[0], G)
+        denom = Om2 - dPhi_dr*dPhi_dr
+        r_tide = pow(G*prog_mass[j] / denom, 1/3.)
 
         # Gaussian spheres in position, offset in radial dir, scatter in all
-        car_to_sph(&w[2*i*ndim], &tmpv[0])
-        tmpv[0] = tmpv[0] + sigmar
-        sph_to_car(&tmpv[0], &w[2*i*ndim])
+        car_to_sph(&w[2*i*ndim], &tmp[0])
+        tmp[0] = tmp[0] + r_tide
+        sph_to_car(&tmp[0], &w[2*i*ndim])
 
-        car_to_sph(&w[2*i*ndim + ndim], &tmpv[0])
-        tmpv[0] = tmpv[0] - sigmar
-        sph_to_car(&tmpv[0], &w[2*i*ndim + ndim])
+        car_to_sph(&w[2*i*ndim + ndim], &tmp[0])
+        tmp[0] = tmp[0] - r_tide
+        sph_to_car(&tmp[0], &w[2*i*ndim + ndim])
 
-        for k in range(ndim_2):
-            w[2*i*ndim + k] = np.random.normal(w[2*i*ndim + k], sigmar / 1.732 / 2.)
-            w[2*i*ndim + k + ndim] = np.random.normal(w[2*i*ndim + k + ndim], sigmar / 1.732 / 2.)
+        sigmar = pos_scatter_fac * r_tide / 1.732 # sqrt(3)
+        if sigmar > 0:
+            for k in range(ndim_2):
+                w[2*i*ndim + k] = np.random.normal(w[2*i*ndim + k], sigmar)
+                w[2*i*ndim + k + ndim] = np.random.normal(w[2*i*ndim + k + ndim], sigmar)
 
         # -------- velocity --------
-        # add scatter in radial velocity only
-        v_car_to_sph(&w[2*i*ndim], &w[2*i*ndim + 3], &tmpv[0])
-        tmpv[0] = np.random.normal(tmpv[0], sigmav)
-        v_sph_to_car(&w[2*i*ndim], &tmpv[0], &w[2*i*ndim + 3])
+        if vel_disp > 0:
+            # add scatter in radial velocity only
+            v_car_to_sph(&w[2*i*ndim], &w[2*i*ndim + 3], &tmp[0])
+            tmp[0] = np.random.normal(tmp[0], vel_disp)
+            v_sph_to_car(&w[2*i*ndim], &tmp[0], &w[2*i*ndim + 3])
 
-        v_car_to_sph(&w[2*i*ndim + ndim], &w[2*i*ndim + ndim + 3], &tmpv[0])
-        tmpv[0] = np.random.normal(tmpv[0], sigmav)
-        v_sph_to_car(&w[2*i*ndim + ndim], &tmpv[0], &w[2*i*ndim + ndim + 3])
+            v_car_to_sph(&w[2*i*ndim + ndim], &w[2*i*ndim + ndim + 3], &tmp[0])
+            tmp[0] = np.random.normal(tmp[0], vel_disp)
+            v_sph_to_car(&w[2*i*ndim + ndim], &tmp[0], &w[2*i*ndim + ndim + 3])
 
         i += 1
 
-    # define full array of times
     i = 1
     for j in range(0,nsteps-1,1):
         if j % release_every == 0:
