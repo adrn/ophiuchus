@@ -1,5 +1,6 @@
 # coding: utf-8
-# cython: boundscheck=False
+# cython: boundscheck=True
+# cython: debug=True
 # cython: nonecheck=False
 # cython: cdivision=True
 # cython: wraparound=False
@@ -179,7 +180,7 @@ cpdef make_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
         # gradient of potential in radial direction
         dPhi_dr = cpotential._d_dr(t[j], &prog_w[j,0], &eps[0], G)
         denom = Om2 - dPhi_dr*dPhi_dr
-        r_tide = pow(G*prog_mass[j] / denom, 1/3.)
+        r_tide = (G*prog_mass[j] / denom)**(1/3.)
 
         # Gaussian spheres in position, offset in radial dir, scatter in all
         car_to_sph(&w[2*i*ndim], &tmp[0])
