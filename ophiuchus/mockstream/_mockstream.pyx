@@ -19,6 +19,8 @@ np.import_array()
 
 from gary.potential.cpotential cimport _CPotential
 
+__all__ = ['streakline_stream']
+
 cdef extern from "math.h":
     double sqrt(double x) nogil
     double log(double x) nogil
@@ -95,13 +97,13 @@ cdef void v_sph_to_car(double *xyz, double *vsph, double *vxyz):
     vxyz[1] = vsph[0]*xyz[1]/dxy*dxy/d + xyz[0]/dxy*vsph[1] - xyz[1]/dxy*xyz[2]/d*vsph[2]
     vxyz[2] = vsph[0]*xyz[2]/d + dxy/d*vsph[2]
 
-cpdef make_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
-                  int release_every,
-                  double G, double[::1] prog_mass,
-                  double pos_scatter_fac=0., double vel_disp=0., double rtide_fac=1.,
-                  double atol=1E-10, double rtol=1E-10, int nmax=0):
+cpdef streakline_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
+                        int release_every,
+                        double G, double[::1] prog_mass,
+                        double pos_disp_fac=0., double vel_disp=0., double rtide_fac=1.,
+                        double atol=1E-10, double rtol=1E-10, int nmax=0):
     """
-    make_stream(cpotential, t, prog_w, release_every, G, prog_mass, pos_scatter_fac, vel_disp, rtide_fac, atol, rtol, nmax)
+    streakline_stream(cpotential, t, prog_w, release_every, G, prog_mass, pos_disp_fac, vel_disp, rtide_fac, atol, rtol, nmax)
 
     Generate a mock stellar stream using the Streakline method.
 
@@ -115,13 +117,13 @@ cpdef make_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
         The 6D coordinates for the orbit of the progenitor system at all times.
         Should have shape ``(ntimesteps,6)``.
     release_every : int
-        Release particles at the Lagrange point every X timesteps.
+        Release particles at the Lagrange points every X timesteps.
     G : numeric
         The value of the gravitational constant, G, in the unit system used.
     prog_mass : `numpy.ndarray`
         The mass of the progenitor at each time. Should have shape ``(ntimesteps,)``.
-    pos_scatter_fac : numeric (optional)
-        A numerical factor to scale the scatter in position for released stars.
+    pos_disp_fac : numeric (optional)
+        A numerical factor to scale the dispersion in position for released stars.
         Default is 0 for the Streakline method.
     vel_disp : numeric (optional)
         Velocity dispersion. Default is 0 for Streakline.
@@ -136,27 +138,41 @@ cpdef make_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
         Passed to the integrator.
     """
     cdef:
-        int i, j, k
-        int res
-        int nsteps = t.shape[0]
-        unsigned norbits = 2 * nsteps / release_every
-        unsigned ndim = prog_w.shape[1]
-        unsigned ndim_2 = ndim / 2
-        double[::1] w = np.empty(norbits*ndim)
-        double dt0 = t[1] - t[0]
-        double[::1] tmp = np.zeros(3)
-        double sigmar
+        int i, j, k # indexing
+        int res # result from calling dop853
+        int ntimes = t.shape[0] # number of times
+        int nsteps = ntimes-1 # number of steps
+        int nparticles # total number of test particles released
 
+        unsigned ndim = prog_w.shape[1] # phase-space dimensionality
+        unsigned ndim_2 = ndim / 2 # configuration-space dimensionality
+
+        double dt0 = t[1] - t[0] # initial timestep
+        double[::1] tmp = np.zeros(3) # temporary array
+
+        # used for figuring out how many orbits to integrate at any given release time
         unsigned this_ndim, this_norbits
 
-        double r_tide, denom, dPhi_dr, Om2
+        double Om2 # angular velocity squared
+        double d, sigma_r # distance, dispersion in release positions
+        double r_tide, menc, f # tidal radius, mass enclosed, f factor
 
-        # ignore this
-        double[::1] eps = np.zeros(3)
+        double[::1] eps = np.zeros(3) # used for 2nd derivative estimation
 
-    # first copy over initial conditions from progenitor orbit to each stripped star
+    # figure out how many particles are going to be released into the "stream"
+    if nsteps % release_every == 0:
+        nparticles = 2 * (nsteps // release_every)
+    else:
+        nparticles = 2 * (nsteps // release_every + 1)
+
+    # container for only current positions of all particles
+    cdef double[::1] w = np.empty(nparticles*ndim)
+
+    # -------
+
+    # copy over initial conditions from progenitor orbit to each streakline star
     i = 0
-    for j in range(nsteps-1):
+    for j in range(nsteps):
         if (j % release_every) != 0:
             continue
 
@@ -166,10 +182,12 @@ cpdef make_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
 
         i += 1
 
-    # now go back to each set of initial conditions and add tidal radius offset,
-    #   scatter, etc.
+    # now go back to each set of initial conditions and:
+    #   - put position at +/- tidal radius along radial vector
+    #   - set velocity so angular velocity constant
+    #   - add dispersion if specified
     i = 0
-    for j in range(nsteps-1):
+    for j in range(nsteps):
         if (j % release_every) != 0:
             continue
 
@@ -178,40 +196,43 @@ cpdef make_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
         Om2 = tmp[1]*tmp[1] + tmp[2]*tmp[2]
 
         # gradient of potential in radial direction
-        dPhi_dr = cpotential._d_dr(t[j], &prog_w[j,0], &eps[0], G)
-        denom = Om2 - dPhi_dr*dPhi_dr
-        r_tide = (G*prog_mass[j] / denom)**(1/3.)
+        menc = cpotential._mass_enclosed(t[j], &prog_w[j,0], &eps[0], G)
+        f = 1. + cpotential._d2_dr2(t[j], &prog_w[j,0], &eps[0], G) / Om2
+        r_tide = (G*prog_mass[j] / (f*menc))**(1/3.)
 
-        # Gaussian spheres in position, offset in radial dir, scatter in all
+        # -------- Position --------
         car_to_sph(&w[2*i*ndim], &tmp[0])
-        tmp[0] = tmp[0] + r_tide
+        d = tmp[0]
+        tmp[0] = d + r_tide
         sph_to_car(&tmp[0], &w[2*i*ndim])
 
         car_to_sph(&w[2*i*ndim + ndim], &tmp[0])
-        tmp[0] = tmp[0] - r_tide
+        tmp[0] = d - r_tide
         sph_to_car(&tmp[0], &w[2*i*ndim + ndim])
 
-        sigmar = pos_scatter_fac * r_tide / 1.732 # sqrt(3)
-        if sigmar > 0:
-            for k in range(ndim_2):
-                w[2*i*ndim + k] = np.random.normal(w[2*i*ndim + k], sigmar)
-                w[2*i*ndim + k + ndim] = np.random.normal(w[2*i*ndim + k + ndim], sigmar)
+        # sigmar = pos_disp_fac * r_tide / 1.732 # sqrt(3)
+        # if sigmar > 0:
+        #     for k in range(ndim_2):
+        #         w[2*i*ndim + k] = np.random.normal(w[2*i*ndim + k], sigmar)
+        #         w[2*i*ndim + k + ndim] = np.random.normal(w[2*i*ndim + k + ndim], sigmar)
 
-        # -------- velocity --------
-        if vel_disp > 0:
-            # add scatter in radial velocity only
-            v_car_to_sph(&w[2*i*ndim], &w[2*i*ndim + 3], &tmp[0])
-            tmp[0] = np.random.normal(tmp[0], vel_disp)
-            v_sph_to_car(&w[2*i*ndim], &tmp[0], &w[2*i*ndim + 3])
+        # -------- Velocity --------
+        v_car_to_sph(&w[2*i*ndim], &w[2*i*ndim + ndim_2], &tmp[0])
+        # tmp[0] = np.random.normal(tmp[0], vel_disp) # radial velocity dispersion
+        tmp[1] = tmp[1] * (d+r_tide) / d
+        tmp[2] = tmp[2] * (d+r_tide) / d
+        v_sph_to_car(&w[2*i*ndim], &tmp[0], &w[2*i*ndim + ndim_2])
 
-            v_car_to_sph(&w[2*i*ndim + ndim], &w[2*i*ndim + ndim + 3], &tmp[0])
-            tmp[0] = np.random.normal(tmp[0], vel_disp)
-            v_sph_to_car(&w[2*i*ndim + ndim], &tmp[0], &w[2*i*ndim + ndim + 3])
+        v_car_to_sph(&w[2*i*ndim + ndim], &w[2*i*ndim + ndim + ndim_2], &tmp[0])
+        # tmp[0] = np.random.normal(tmp[0], vel_disp) # radial velocity dispersion
+        tmp[1] = tmp[1] * (d-r_tide) / d
+        tmp[2] = tmp[2] * (d-r_tide) / d
+        v_sph_to_car(&w[2*i*ndim + ndim], &tmp[0], &w[2*i*ndim + ndim + ndim_2])
 
         i += 1
 
     i = 1
-    for j in range(0,nsteps-1,1):
+    for j in range(nsteps):
         if j % release_every == 0:
             this_norbits = 2*i
             this_ndim = ndim * this_norbits
@@ -231,4 +252,4 @@ cpdef make_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
         elif res == -4:
             raise RuntimeError("The problem is probably stff (interrupted).")
 
-    return np.asarray(w).reshape(norbits, ndim)
+    return np.asarray(w).reshape(nparticles, ndim)

@@ -1,1 +1,1 @@
-from ._mockstream import make_stream
+from ._mockstream import *
