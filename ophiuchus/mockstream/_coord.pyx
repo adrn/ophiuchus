@@ -1,6 +1,6 @@
 # coding: utf-8
-# cython: boundscheck=True
-# cython: debug=True
+# cython: boundscheck=False
+# cython: debug=False
 # cython: nonecheck=False
 # cython: cdivision=True
 # cython: wraparound=False
@@ -12,23 +12,23 @@ from __future__ import division, print_function
 
 __author__ = "adrn <adrn@astro.columbia.edu>"
 
-# Third-party
-import numpy as np
-cimport numpy as np
-np.import_array()
-
-# __all__ = ['streakline_stream']
+from libc.math cimport M_PI
 
 cdef extern from "math.h":
     double sqrt(double x) nogil
+    double cos(double x) nogil
+    double sin(double x) nogil
+    double atan2(double y, double x) nogil
+    double fmod(double y, double x) nogil
 
-cdef void sat_rotation_matrix(double *w, double *R):
+cdef void sat_rotation_matrix(double *w, # in
+                              double *R): # out
     cdef:
         double x1_norm, x2_norm, x3_norm = 0.
         unsigned int i
-        double[::1] x1 = np.zeros(3)
-        double[::1] x2 = np.zeros(3)
-        double[::1] x3 = np.zeros(3)
+        double *x1 = [0.,0.,0.]
+        double *x2 = [0.,0.,0.]
+        double *x3 = [0.,0.,0.]
 
     x1[0] = w[0]
     x1[1] = w[1]
@@ -61,11 +61,11 @@ cdef void sat_rotation_matrix(double *w, double *R):
     R[7] = x3[7]
     R[8] = x3[8]
 
-cdef void _to_sat_coords(double *w, double *w_sat, double *R,
-                         double *w_prime):
+cdef void to_sat_coords(double *w, double *w_sat, double *R, # in
+                        double *w_prime): # out
     # Translate to be centered on progenitor
     cdef:
-        double[::1] dw = np.zeros(6)
+        double *dw = [0.,0.,0.,0.,0.,0.]
         int i
 
     for i in range(6):
@@ -80,8 +80,8 @@ cdef void _to_sat_coords(double *w, double *w_sat, double *R,
     w_prime[4] = dw[3]*R[3] + dw[4]*R[4] + dw[5]*R[5]
     w_prime[5] = dw[3]*R[6] + dw[4]*R[7] + dw[5]*R[8]
 
-cdef void _from_sat_coords(double *w_prime, double *w_sat, double *R,
-                           double *w):
+cdef void from_sat_coords(double *w_prime, double *w_sat, double *R, # in
+                          double *w): # out
     cdef int i
 
     # Project back from sat plane
@@ -95,4 +95,76 @@ cdef void _from_sat_coords(double *w_prime, double *w_sat, double *R,
 
     for i in range(6):
         w[i] = w[i] + w_sat[i]
+
+# ---------------------------------------------------------------------
+
+cdef void car_to_cyl(double *xyz, # in
+                     double *cyl): # out
+    cdef:
+        double R = sqrt(xyz[0]*xyz[0] + xyz[1]*xyz[1])
+        double phi = atan2(xyz[1], xyz[0])
+        double z = xyz[2]
+
+    cyl[0] = R
+    if (phi >= 0):
+        cyl[1] = phi
+    else:
+        cyl[1] = phi + 2*M_PI
+    cyl[2] = z
+
+cdef void cyl_to_car(double *cyl, # in
+                     double *xyz): # out
+    xyz[0] = cyl[0] * cos(cyl[1])
+    xyz[1] = cyl[0] * sin(cyl[1])
+    xyz[2] = cyl[2]
+
+cdef void v_car_to_cyl(double *xyz, double *vxyz, double *cyl, # in
+                       double *vcyl): # out
+    cdef:
+        double vR = (xyz[0]*vxyz[0] + xyz[1]*vxyz[1]) / cyl[0]
+        double vphi = (xyz[0]*vxyz[1] - vxyz[0]*xyz[1]) / cyl[0]
+
+    vcyl[0] = vR
+    vcyl[1] = vphi
+    vcyl[2] = vxyz[2]
+
+cdef void v_cyl_to_car(double *cyl, double *vcyl, double *xyz, # in
+                       double *vxyz): # out
+    vxyz[0] = vcyl[0] * xyz[0]/cyl[0] - vcyl[1] * xyz[1]/cyl[0]
+    vxyz[1] = vcyl[0] * xyz[1]/cyl[0] + vcyl[1] * xyz[0]/cyl[0]
+    vxyz[2] = vcyl[2]
+
+# ---------------------------------------------------------------------
+# Tests
+#
+
+cpdef _test_car_to_cyl_roundtrip():
+    import numpy as np
+    n = 1024
+
+    cdef:
+        double[:,::1] xyz = np.random.uniform(-10,10,size=(n,3))
+        double[::1] cyl = np.zeros(3)
+        double[::1] xyz2 = np.zeros(3)
+
+    for i in range(n):
+        car_to_cyl(&xyz[i,0], &cyl[0])
+        cyl_to_car(&cyl[0], &xyz2[0])
+        for j in range(3):
+            assert np.allclose(xyz[i,j], xyz2[j])
+
+cpdef _test_cyl_to_car_roundtrip():
+    import numpy as np
+    n = 1024
+
+    cdef:
+        double[:,::1] cyl = np.random.uniform(0,2*np.pi,size=(n,3))
+        double[::1] xyz = np.zeros(3)
+        double[::1] cyl2 = np.zeros(3)
+
+    for i in range(n):
+        cyl_to_car(&cyl[i,0], &xyz[0])
+        car_to_cyl(&xyz[0], &cyl2[0])
+        for j in range(3):
+            assert np.allclose(cyl[i,j], cyl2[j])
 
