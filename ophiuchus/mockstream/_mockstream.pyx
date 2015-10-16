@@ -23,7 +23,7 @@ from gary.potential.cpotential cimport _CPotential
 from ._coord cimport (sat_rotation_matrix, to_sat_coords, from_sat_coords,
                       cyl_to_car, car_to_cyl)
 
-# __all__ = ['streakline_stream']
+__all__ = ['streakline_stream', 'fardal_stream', 'apw_stream']
 
 cdef extern from "math.h":
     double sqrt(double x) nogil
@@ -311,6 +311,65 @@ cpdef fardal_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
 
     k_mean[0] = 2. # R
     k_disp[0] = 0.5
+
+    k_mean[1] = 0. # phi
+    k_disp[1] = 0.
+
+    k_mean[2] = 0. # z
+    k_disp[2] = 0.5
+
+    k_mean[3] = 0. # vR
+    k_disp[3] = 0.
+
+    k_mean[4] = 0.3 # vt
+    k_disp[4] = 0.5
+
+    k_mean[5] = 0. # vz
+    k_disp[5] = 0.5
+
+    return mock_stream(cpotential, t, prog_w,
+                       release_every,
+                       k_mean, k_disp,
+                       G, prog_mass,
+                       atol=atol, rtol=rtol, nmax=nmax)
+
+cpdef apw_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
+                 int release_every,
+                 double G, double[::1] prog_mass,
+                 double atol=1E-10, double rtol=1E-10, int nmax=0):
+    """
+    apw_stream(cpotential, t, prog_w, release_every, G, prog_mass, atol, rtol, nmax)
+
+    Generate a mock stellar stream using the Streakline method.
+
+    Parameters
+    ----------
+    cpotential : `gary.potential._CPotential`
+        An instance of a ``_CPotential`` representing the gravitational potential.
+    t : `numpy.ndarray`
+        An array of times. Should have shape ``(ntimesteps,)``.
+    prog_w : `numpy.ndarray`
+        The 6D coordinates for the orbit of the progenitor system at all times.
+        Should have shape ``(ntimesteps,6)``.
+    release_every : int
+        Release particles at the Lagrange points every X timesteps.
+    G : numeric
+        The value of the gravitational constant, G, in the unit system used.
+    prog_mass : `numpy.ndarray`
+        The mass of the progenitor at each time. Should have shape ``(ntimesteps,)``.
+    atol : numeric (optional)
+        Passed to the integrator. Absolute tolerance parameter. Default is 1E-10.
+    rtol : numeric (optional)
+        Passed to the integrator. Relative tolerance parameter. Default is 1E-10.
+    nmax : int (optional)
+        Passed to the integrator.
+    """
+    cdef:
+        double[::1] k_mean = np.zeros(6)
+        double[::1] k_disp = np.zeros(6)
+
+    k_mean[0] = 1. # R
+    k_disp[0] = 0.25
 
     k_mean[1] = 0. # phi
     k_disp[1] = 0.
