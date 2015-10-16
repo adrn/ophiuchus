@@ -113,6 +113,7 @@ class MockStreamGrid(OphOrbitGridExperiment):
         result['w'] = allw
         result['dt'] = float(dt)
         result['integration_time'] = c['integration_time']
+        result['release_every'] = c['release_every']
         result['success'] = True
         result['error_code'] = 0
         return result
