@@ -93,8 +93,10 @@ cpdef streakline_stream(_CPotential cpotential, double[::1] t, double[:,::1] pro
         double dt0 = t[1] - t[0] # initial timestep
         double[::1] tmp = np.zeros(3) # temporary array
 
-        double[::1] w_prime = np.zeros(6) # 6-position in sat coords
-        double[::1] cyl = np.zeros(6) # 6-position in cyl-sat coords
+        double[::1] w_prime = np.zeros(6) # 6-position of stripped star
+        double[::1] cyl = np.zeros(6) # 6-position in cylindrical coords
+        double[::1] prog_w_prime = np.zeros(6) # 6-position of progenitor rotated
+        double[::1] prog_cyl = np.zeros(6) # 6-position of progenitor in cylindrical coords
 
         # used for figuring out how many orbits to integrate at any given release time
         unsigned this_ndim, this_norbits
@@ -138,10 +140,10 @@ cpdef streakline_stream(_CPotential cpotential, double[::1] t, double[:,::1] pro
             continue
 
         # angular velocity
-        d = sqrt(tmp[0]*tmp[0] + tmp[1]*tmp[1] + tmp[2]*tmp[2])
-        Om = ((tmp[1]*tmp[5] - tmp[2]*tmp[4])**2 +
-              (tmp[0]*tmp[5] - tmp[2]*tmp[3])**2 +
-              (tmp[0]*tmp[4] - tmp[1]*tmp[3])**2) / (d*d)
+        d = sqrt(prog_w[j,0]*prog_w[j,0] +
+                 prog_w[j,1]*prog_w[j,1] +
+                 prog_w[j,2]*prog_w[j,2])
+        Om = np.linalg.norm(np.cross(prog_w[j,:3], prog_w[j,3:]) / d)
 
         # gradient of potential in radial direction
         menc = cpotential._mass_enclosed(t[j], &prog_w[j,0], &eps[0], G)
@@ -150,27 +152,27 @@ cpdef streakline_stream(_CPotential cpotential, double[::1] t, double[:,::1] pro
 
         # the rotation matrix to transform from satellite coords to normal
         sat_rotation_matrix(&prog_w[j,0], &R[0,0])
+        to_sat_coords(&prog_w[j,0], &R[0,0], &prog_w_prime[0])
+        car_to_cyl(&prog_w_prime[0], &prog_cyl[0])
 
         # eject stars at tidal radius with same angular velocity as progenitor
-        cyl[0] = r_tide
+        cyl[0] = prog_cyl[0] + r_tide
         cyl[1] = 0.
         cyl[2] = 0.
-        cyl[3] = 0.
-        cyl[4] = Om*d
-        cyl[5] = 0.
+        cyl[3] = prog_cyl[3]
+        cyl[4] = prog_cyl[4] * cyl[0] / prog_cyl[0]
+        cyl[5] = prog_cyl[5]
         cyl_to_car(&cyl[0], &w_prime[0])
-        from_sat_coords(&w_prime[0], &prog_w[j,0], &R[0,0],
-                        &w[2*i*ndim])
+        from_sat_coords(&w_prime[0], &R[0,0], &w[2*i*ndim])
 
-        cyl[0] = r_tide
-        cyl[1] = M_PI
+        cyl[0] = prog_cyl[0] - r_tide
+        cyl[1] = 0.
         cyl[2] = 0.
-        cyl[3] = 0.
-        cyl[4] = Om*d
-        cyl[5] = 0.
+        cyl[3] = prog_cyl[3]
+        cyl[4] = prog_cyl[4] * cyl[0] / prog_cyl[0]
+        cyl[5] = prog_cyl[5]
         cyl_to_car(&cyl[0], &w_prime[0])
-        from_sat_coords(&w_prime[0], &prog_w[j,0], &R[0,0],
-                        &w[2*i*ndim + ndim])
+        from_sat_coords(&w_prime[0], &R[0,0], &w[2*i*ndim + ndim])
 
         i += 1
 
