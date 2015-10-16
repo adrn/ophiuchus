@@ -15,6 +15,7 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 from libc.math cimport M_PI
 
 cdef extern from "math.h":
+    double abs(double x) nogil
     double sqrt(double x) nogil
     double cos(double x) nogil
     double sin(double x) nogil
@@ -61,26 +62,21 @@ cdef void sat_rotation_matrix(double *w, # in
     R[7] = x3[1]
     R[8] = x3[2]
 
-cdef void to_sat_coords(double *w, double *w_sat, double *R, # in
+cdef void to_sat_coords(double *w, double *R, # in
                         double *w_prime): # out
     # Translate to be centered on progenitor
-    cdef:
-        double *dw = [0.,0.,0.,0.,0.,0.]
-        int i
-
-    for i in range(6):
-        dw[i] = w[i] - w_sat[i]
+    cdef int i
 
     # Project into new basis
-    w_prime[0] = dw[0]*R[0] + dw[1]*R[1] + dw[2]*R[2]
-    w_prime[1] = dw[0]*R[3] + dw[1]*R[4] + dw[2]*R[5]
-    w_prime[2] = dw[0]*R[6] + dw[1]*R[7] + dw[2]*R[8]
+    w_prime[0] = w[0]*R[0] + w[1]*R[1] + w[2]*R[2]
+    w_prime[1] = w[0]*R[3] + w[1]*R[4] + w[2]*R[5]
+    w_prime[2] = w[0]*R[6] + w[1]*R[7] + w[2]*R[8]
 
-    w_prime[3] = dw[3]*R[0] + dw[4]*R[1] + dw[5]*R[2]
-    w_prime[4] = dw[3]*R[3] + dw[4]*R[4] + dw[5]*R[5]
-    w_prime[5] = dw[3]*R[6] + dw[4]*R[7] + dw[5]*R[8]
+    w_prime[3] = w[3]*R[0] + w[4]*R[1] + w[5]*R[2]
+    w_prime[4] = w[3]*R[3] + w[4]*R[4] + w[5]*R[5]
+    w_prime[5] = w[3]*R[6] + w[4]*R[7] + w[5]*R[8]
 
-cdef void from_sat_coords(double *w_prime, double *w_sat, double *R, # in
+cdef void from_sat_coords(double *w_prime, double *R, # in
                           double *w): # out
     cdef int i
 
@@ -93,9 +89,6 @@ cdef void from_sat_coords(double *w_prime, double *w_sat, double *R, # in
     w[4] = w_prime[3]*R[1] + w_prime[4]*R[4] + w_prime[5]*R[7]
     w[5] = w_prime[3]*R[2] + w_prime[4]*R[5] + w_prime[5]*R[8]
 
-    for i in range(6):
-        w[i] = w[i] + w_sat[i]
-
 # ---------------------------------------------------------------------
 
 cdef void car_to_cyl(double *w, # in
@@ -107,7 +100,7 @@ cdef void car_to_cyl(double *w, # in
         double vphi = (w[0]*w[4] - w[3]*w[1]) / R
 
     cyl[0] = R
-    if (phi >= 0):
+    if (abs(phi) >= 1E-13): # HACK: major hack
         cyl[1] = phi
     else:
         cyl[1] = phi + 2*M_PI
@@ -179,8 +172,8 @@ cpdef _test_to_sat_coords_roundtrip():
 
     for i in range(n):
         sat_rotation_matrix(&w_sat[i,0], &R[0,0])
-        to_sat_coords(&w[i,0], &w_sat[i,0], &R[0,0], &w_prime[0])
-        from_sat_coords(&w_prime[0], &w_sat[i,0], &R[0,0], &w2[0])
+        to_sat_coords(&w[i,0], &R[0,0], &w_prime[0])
+        from_sat_coords(&w_prime[0], &R[0,0], &w2[0])
 
         for j in range(6):
             assert np.allclose(w[i,j], w2[j])
@@ -214,3 +207,52 @@ cpdef _test_cyl_to_car_roundtrip():
         car_to_cyl(&w[0], &cyl2[0])
         for j in range(6):
             assert np.allclose(cyl[i,j], cyl2[j])
+
+
+# cdef void car_to_sph(double *xyz, double *sph):
+#     # TODO: note this isn't consistent with the velocity transform because of theta
+#     # get out spherical components
+#     cdef:
+#         double d = sqrt(xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2])
+#         double phi = atan2(xyz[1], xyz[0])
+#         double theta = acos(xyz[2] / d)
+
+#     sph[0] = d
+#     sph[1] = phi
+#     sph[2] = theta
+
+# cdef void sph_to_car(double *sph, double *xyz):
+#     # TODO: note this isn't consistent with the velocity transform because of theta
+#     # get out spherical components
+#     xyz[0] = sph[0] * cos(sph[1]) * sin(sph[2])
+#     xyz[1] = sph[0] * sin(sph[1]) * sin(sph[2])
+#     xyz[2] = sph[0] * cos(sph[2])
+
+# cdef void v_car_to_sph(double *xyz, double *vxyz, double *vsph):
+#     # get out spherical components
+#     cdef:
+#         double d = sqrt(xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2])
+#         double dxy = sqrt(xyz[0]*xyz[0] + xyz[1]*xyz[1])
+
+#         double vr = (xyz[0]*vxyz[0]+xyz[1]*vxyz[1]+xyz[2]*vxyz[2]) / d
+
+#         double mu_lon = (xyz[0]*vxyz[1] - vxyz[0]*xyz[1]) / (dxy*dxy)
+#         double vlon = mu_lon * dxy # cos(lat)
+
+#         double mu_lat = (xyz[2]*(xyz[0]*vxyz[0] + xyz[1]*vxyz[1]) - dxy*dxy*vxyz[2]) / (d*d*dxy)
+#         double vlat = -mu_lat * d
+
+#     vsph[0] = vr
+#     vsph[1] = vlon
+#     vsph[2] = vlat
+
+# cdef void v_sph_to_car(double *xyz, double *vsph, double *vxyz):
+#     # get out spherical components
+#     cdef:
+#         double d = sqrt(xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2])
+#         double dxy = sqrt(xyz[0]*xyz[0] + xyz[1]*xyz[1])
+
+#     vxyz[0] = vsph[0]*xyz[0]/dxy*dxy/d - xyz[1]/dxy*vsph[1] - xyz[0]/dxy*xyz[2]/d*vsph[2]
+#     vxyz[1] = vsph[0]*xyz[1]/dxy*dxy/d + xyz[0]/dxy*vsph[1] - xyz[1]/dxy*xyz[2]/d*vsph[2]
+#     vxyz[2] = vsph[0]*xyz[2]/d + dxy/d*vsph[2]
+
