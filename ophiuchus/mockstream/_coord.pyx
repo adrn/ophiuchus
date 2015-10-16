@@ -144,6 +144,8 @@ cpdef _test_sat_rotation_matrix():
 
     cdef:
         double[::1] w = np.zeros(6)
+        double[::1] wrot = np.zeros(6)
+        double[::1] w2 = np.zeros(6)
         double[:,::1] R = np.zeros((3,3))
 
     for i in range(n):
@@ -157,6 +159,18 @@ cpdef _test_sat_rotation_matrix():
 
         v = np.array(R).dot(np.array(w)[3:])
         assert np.allclose(v[2], 0)
+        for j in range(3):
+            wrot[j] = x[j]
+            wrot[j+3] = v[j]
+
+        x2 = np.array(R.T).dot(np.array(wrot)[:3])
+        v2 = np.array(R.T).dot(np.array(wrot)[3:])
+        for j in range(3):
+            w2[j] = x2[j]
+            w2[j+3] = v2[j]
+
+        for j in range(6):
+            assert np.allclose(w[j], w2[j])
 
 cpdef _test_car_to_cyl_roundtrip():
     import numpy as np
