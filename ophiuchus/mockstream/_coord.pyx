@@ -140,15 +140,23 @@ cdef void v_cyl_to_car(double *cyl, double *vcyl, double *xyz, # in
 
 cpdef _test_sat_rotation_matrix():
     import numpy as np
+    n = 1024
+
     cdef:
         double[::1] w = np.zeros(6)
         double[:,::1] R = np.zeros((3,3))
 
-    w[1] = 1.
-    w[3] = -2*M_PI
-    sat_rotation_matrix(&w[0], &R[0,0])
-    assert np.allclose(R[0,1], 1.)
-    assert np.allclose(R[1,0], -1.)
+    for i in range(n):
+        w = np.random.uniform(size=6)
+        sat_rotation_matrix(&w[0], &R[0,0])
+
+        x = np.array(R).dot(np.array(w)[:3])
+        assert x[0] > 0
+        assert np.allclose(x[1], 0)
+        assert np.allclose(x[2], 0)
+
+        v = np.array(R).dot(np.array(w)[3:])
+        assert np.allclose(v[2], 0)
 
 cpdef _test_car_to_cyl_roundtrip():
     import numpy as np
