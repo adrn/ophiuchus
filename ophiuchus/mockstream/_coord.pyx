@@ -54,12 +54,12 @@ cdef void sat_rotation_matrix(double *w, # in
     R[0] = x1[0]
     R[1] = x1[1]
     R[2] = x1[2]
-    R[3] = x2[3]
-    R[4] = x2[4]
-    R[5] = x2[5]
-    R[6] = x3[6]
-    R[7] = x3[7]
-    R[8] = x3[8]
+    R[3] = x2[0]
+    R[4] = x2[1]
+    R[5] = x2[2]
+    R[6] = x3[0]
+    R[7] = x3[1]
+    R[8] = x3[2]
 
 cdef void to_sat_coords(double *w, double *w_sat, double *R, # in
                         double *w_prime): # out
@@ -137,6 +137,18 @@ cdef void v_cyl_to_car(double *cyl, double *vcyl, double *xyz, # in
 # ---------------------------------------------------------------------
 # Tests
 #
+
+cpdef _test_sat_rotation_matrix():
+    import numpy as np
+    cdef:
+        double[::1] w = np.zeros(6)
+        double[:,::1] R = np.zeros((3,3))
+
+    w[1] = 1.
+    w[3] = -2*M_PI
+    sat_rotation_matrix(&w[0], &R[0,0])
+    assert np.allclose(R[0,1], 1.)
+    assert np.allclose(R[1,0], -1.)
 
 cpdef _test_car_to_cyl_roundtrip():
     import numpy as np
