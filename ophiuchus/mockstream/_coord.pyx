@@ -98,41 +98,34 @@ cdef void from_sat_coords(double *w_prime, double *w_sat, double *R, # in
 
 # ---------------------------------------------------------------------
 
-cdef void car_to_cyl(double *xyz, # in
+cdef void car_to_cyl(double *w, # in
                      double *cyl): # out
     cdef:
-        double R = sqrt(xyz[0]*xyz[0] + xyz[1]*xyz[1])
-        double phi = atan2(xyz[1], xyz[0])
-        double z = xyz[2]
+        double R = sqrt(w[0]*w[0] + w[1]*w[1])
+        double phi = atan2(w[1], w[0])
+        double vR = (w[0]*w[3] + w[1]*w[4]) / R
+        double vphi = (w[0]*w[4] - w[3]*w[1]) / R
 
     cyl[0] = R
     if (phi >= 0):
         cyl[1] = phi
     else:
         cyl[1] = phi + 2*M_PI
-    cyl[2] = z
+    cyl[2] = w[2]
+
+    cyl[3] = vR
+    cyl[4] = vphi
+    cyl[5] = w[5]
 
 cdef void cyl_to_car(double *cyl, # in
-                     double *xyz): # out
-    xyz[0] = cyl[0] * cos(cyl[1])
-    xyz[1] = cyl[0] * sin(cyl[1])
-    xyz[2] = cyl[2]
+                     double *w): # out
+    w[0] = cyl[0] * cos(cyl[1])
+    w[1] = cyl[0] * sin(cyl[1])
+    w[2] = cyl[2]
 
-cdef void v_car_to_cyl(double *xyz, double *vxyz, double *cyl, # in
-                       double *vcyl): # out
-    cdef:
-        double vR = (xyz[0]*vxyz[0] + xyz[1]*vxyz[1]) / cyl[0]
-        double vphi = (xyz[0]*vxyz[1] - vxyz[0]*xyz[1]) / cyl[0]
-
-    vcyl[0] = vR
-    vcyl[1] = vphi
-    vcyl[2] = vxyz[2]
-
-cdef void v_cyl_to_car(double *cyl, double *vcyl, double *xyz, # in
-                       double *vxyz): # out
-    vxyz[0] = vcyl[0] * xyz[0]/cyl[0] - vcyl[1] * xyz[1]/cyl[0]
-    vxyz[1] = vcyl[0] * xyz[1]/cyl[0] + vcyl[1] * xyz[0]/cyl[0]
-    vxyz[2] = vcyl[2]
+    w[3] = cyl[3] * cos(cyl[1]) - cyl[4] * sin(cyl[1])
+    w[4] = cyl[3] * sin(cyl[1]) + cyl[4] * cos(cyl[1])
+    w[5] = cyl[5]
 
 # ---------------------------------------------------------------------
 # Tests
@@ -197,64 +190,27 @@ cpdef _test_car_to_cyl_roundtrip():
     n = 1024
 
     cdef:
-        double[:,::1] xyz = np.random.uniform(-10,10,size=(n,3))
-        double[::1] cyl = np.zeros(3)
-        double[::1] xyz2 = np.zeros(3)
+        double[:,::1] w = np.random.uniform(-10,10,size=(n,6))
+        double[::1] cyl = np.zeros(6)
+        double[::1] w2 = np.zeros(6)
 
     for i in range(n):
-        car_to_cyl(&xyz[i,0], &cyl[0])
-        cyl_to_car(&cyl[0], &xyz2[0])
-        for j in range(3):
-            assert np.allclose(xyz[i,j], xyz2[j])
+        car_to_cyl(&w[i,0], &cyl[0])
+        cyl_to_car(&cyl[0], &w2[0])
+        for j in range(6):
+            assert np.allclose(w[i,j], w2[j])
 
 cpdef _test_cyl_to_car_roundtrip():
     import numpy as np
     n = 1024
 
     cdef:
-        double[:,::1] cyl = np.random.uniform(0,2*np.pi,size=(n,3))
-        double[::1] xyz = np.zeros(3)
-        double[::1] cyl2 = np.zeros(3)
+        double[:,::1] cyl = np.random.uniform(0,2*np.pi,size=(n,6))
+        double[::1] w = np.zeros(6)
+        double[::1] cyl2 = np.zeros(6)
 
     for i in range(n):
-        cyl_to_car(&cyl[i,0], &xyz[0])
-        car_to_cyl(&xyz[0], &cyl2[0])
-        for j in range(3):
+        cyl_to_car(&cyl[i,0], &w[0])
+        car_to_cyl(&w[0], &cyl2[0])
+        for j in range(6):
             assert np.allclose(cyl[i,j], cyl2[j])
-
-cpdef _test_vcar_to_cyl_roundtrip():
-    import numpy as np
-    n = 1024
-
-    cdef:
-        double[:,::1] xyz = np.random.uniform(-10,10,size=(n,3))
-        double[:,::1] vxyz = np.random.uniform(-10,10,size=(n,3))
-        double[::1] cyl = np.zeros(3)
-        double[::1] vcyl = np.zeros(3)
-        double[::1] xyz2 = np.zeros(3)
-        double[::1] vxyz2 = np.zeros(3)
-
-    for i in range(n):
-        car_to_cyl(&xyz[i,0], &cyl[0])
-        v_car_to_cyl(&xyz[i,0], &vxyz[i,0], &cyl[0], &vcyl[0])
-        v_cyl_to_car(&cyl[0], &vcyl[0], &xyz[i,0], &vxyz2[0])
-        for j in range(3):
-            assert np.allclose(vxyz[i,j], vxyz2[j])
-
-cpdef _test_vcyl_to_car_roundtrip():
-    import numpy as np
-    n = 1024
-
-    cdef:
-        double[:,::1] cyl = np.random.uniform(0,2*np.pi,size=(n,3))
-        double[:,::1] vcyl = np.random.uniform(-10,10,size=(n,3))
-        double[::1] xyz = np.zeros(3)
-        double[::1] vxyz = np.zeros(3)
-        double[::1] vcyl2 = np.zeros(3)
-
-    for i in range(n):
-        cyl_to_car(&cyl[i,0], &xyz[0])
-        v_cyl_to_car(&cyl[i,0], &vcyl[i,0], &xyz[0], &vxyz[0])
-        v_car_to_cyl(&xyz[0], &vxyz[0], &cyl[i,0], &vcyl2[0])
-        for j in range(3):
-            assert np.allclose(vcyl[i,j], vcyl2[j])

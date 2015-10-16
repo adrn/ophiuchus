@@ -90,6 +90,10 @@ cdef extern from "stdio.h":
 #         double dt0 = t[1] - t[0] # initial timestep
 #         double[::1] tmp = np.zeros(3) # temporary array
 
+#         double[::1] w_prime = np.zeros(6) # 6-position in sat coords
+#         double[::1] cyl = np.zeros(3) # position in cyl-sat coords
+#         double[::1] vcyl = np.zeros(3) # velocity in cyl-sat coords
+
 #         # used for figuring out how many orbits to integrate at any given release time
 #         unsigned this_ndim, this_norbits
 
@@ -98,6 +102,7 @@ cdef extern from "stdio.h":
 #         double r_tide, menc, f # tidal radius, mass enclosed, f factor
 
 #         double[::1] eps = np.zeros(3) # used for 2nd derivative estimation
+#         double[:,::1] R = np.zeros((3,3)) # rotation matrix
 
 #     # figure out how many particles are going to be released into the "stream"
 #     if nsteps % release_every == 0:
@@ -130,17 +135,31 @@ cdef extern from "stdio.h":
 #         if (j % release_every) != 0:
 #             continue
 
-#         # get angular velocity of the progenitor
-#         car_to_cyl(&w[2*i*ndim], &tmp[0])
-#         d = sqrt(tmp[0]*tmp[0] + tmp[2]*tmp[2])
-
-#         v_car_to_cyl(&w[2*i*ndim], &w[2*i*ndim + 3], &tmp[0])
-#         Om = tmp[1] / d
+#         # angular velocity
+#         d = sqrt(tmp[0]*tmp[0] + tmp[1]*tmp[1] + tmp[2]*tmp[2])
+#         Om = ((tmp[1]*tmp[5] - tmp[2]*tmp[4])**2 +
+#               (tmp[0]*tmp[5] - tmp[2]*tmp[3])**2 +
+#               (tmp[0]*tmp[4] - tmp[1]*tmp[3])**2) / (d*d)
 
 #         # gradient of potential in radial direction
 #         menc = cpotential._mass_enclosed(t[j], &prog_w[j,0], &eps[0], G)
 #         f = 1. + cpotential._d2_dr2(t[j], &prog_w[j,0], &eps[0], G) / (Om*Om)
 #         r_tide = (G*prog_mass[j] / (f*menc))**(1/3.)
+
+#         # transform from cylindrical, satellite coordinates
+#         sat_rotation_matrix(&prog_w[j,0], &R[0,0])
+#         cyl[0] = r_tide
+#         cyl[1] = 0.
+#         cyl[2] = 0.
+#         cyl[3] = 0.
+#         cyl[4] = Om*d
+#         cyl[5] = 0.
+
+#         from_sat_coords()
+
+
+
+
 
 #         # -------- Position --------
 #         car_to_sph(&w[2*i*ndim], &tmp[0])
