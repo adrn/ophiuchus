@@ -22,7 +22,8 @@ class MockStreamGrid(OphOrbitGridExperiment):
     # failure error codes
     error_codes = {
         1: "Failed to integrate orbits",
-        2: "Unexpected failure."
+        2: "Unexpected failure.",
+        3: "Failed to integrate progenitor orbit"
     }
 
     _run_kwargs = ['integration_time', 'dt', 'release_every']
@@ -68,10 +69,26 @@ class MockStreamGrid(OphOrbitGridExperiment):
         # return dict
         result = dict()
 
-        # integrate orbit back, then forward again
-        torig,w = potential.integrate_orbit(w0.copy(), dt=-dt, nsteps=nsteps, Integrator=gi.DOPRI853Integrator)
-        t,w = potential.integrate_orbit(w[-1], dt=dt, t1=torig[-1], nsteps=nsteps, Integrator=gi.DOPRI853Integrator)
+        logger.debug("Integrating progenitor orbit...")
+        try:
+            # integrate orbit back, then forward again
+            torig,w = potential.integrate_orbit(w0.copy(), dt=-dt, nsteps=nsteps, Integrator=gi.DOPRI853Integrator)
+            t,w = potential.integrate_orbit(w[-1], dt=dt, t1=torig[-1], nsteps=nsteps, Integrator=gi.DOPRI853Integrator)
+        except RuntimeError:
+            logger.warning("Failed to integrate progenitor orbit.")
+            result['w'] = np.ones((nparticles,6))*np.nan
+            result['success'] = False
+            result['error_code'] = 3
+            return result
+        except:
+            logger.warning("Unexpected failure!")
+            result['w'] = np.ones((nparticles,6))*np.nan
+            result['success'] = False
+            result['error_code'] = 2
+            return result
+
         ww = w[:,0].copy()
+        logger.debug("...finished integrating progenitor orbit.")
 
         prog_mass = np.zeros_like(t) + 1E4
         try:
