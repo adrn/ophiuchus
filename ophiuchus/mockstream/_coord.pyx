@@ -172,6 +172,26 @@ cpdef _test_sat_rotation_matrix():
         for j in range(6):
             assert np.allclose(w[j], w2[j])
 
+cpdef _test_to_sat_coords_roundtrip():
+    import numpy as np
+    n = 1024
+
+    cdef:
+        double[:,::1] w = np.random.uniform(size=(n,6))
+        double[:,::1] w_sat = np.random.uniform(size=(n,6))
+        double[:,::1] R = np.zeros((3,3))
+
+        double[::1] w_prime = np.zeros(6)
+        double[::1] w2 = np.zeros(6)
+
+    for i in range(n):
+        sat_rotation_matrix(&w_sat[i,0], &R[0,0])
+        to_sat_coords(&w[i,0], &w_sat[i,0], &R[0,0], &w_prime[0])
+        from_sat_coords(&w_prime[0], &w_sat[i,0], &R[0,0], &w2[0])
+
+        for j in range(6):
+            assert np.allclose(w[i,j], w2[j])
+
 cpdef _test_car_to_cyl_roundtrip():
     import numpy as np
     n = 1024
