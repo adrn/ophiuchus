@@ -31,7 +31,7 @@ class MockStreamGrid(OphOrbitGridExperiment):
         dt=1., # timestep
         release_every=1, # release a test particle every N timesteps
         w0_filename='w0.npy', # Name of the initial conditions file
-        cache_filename='freqmap.npy', # Name of the cache file
+        cache_filename='mockstreamgrid.npy', # Name of the cache file
         potential_filename='potential.yml' # Name of cached potential file
     )
 
