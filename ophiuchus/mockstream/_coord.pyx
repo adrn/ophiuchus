@@ -15,7 +15,7 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 from libc.math cimport M_PI
 
 cdef extern from "math.h":
-    double abs(double x) nogil
+    double fabs(double x) nogil
     double sqrt(double x) nogil
     double cos(double x) nogil
     double sin(double x) nogil
@@ -100,7 +100,7 @@ cdef void car_to_cyl(double *w, # in
         double vphi = (w[0]*w[4] - w[3]*w[1]) / R
 
     cyl[0] = R
-    if (abs(phi) >= 1E-13): # HACK: major hack
+    if (fabs(phi) >= 1E-13): # HACK: major hack
         cyl[1] = phi
     else:
         cyl[1] = phi + 2*M_PI
@@ -133,6 +133,7 @@ cpdef _test_sat_rotation_matrix():
         double[::1] wrot = np.zeros(6)
         double[::1] w2 = np.zeros(6)
         double[:,::1] R = np.zeros((3,3))
+        unsigned int i, j
 
     for i in range(n):
         w = np.random.uniform(size=6)
@@ -170,6 +171,8 @@ cpdef _test_to_sat_coords_roundtrip():
         double[::1] w_prime = np.zeros(6)
         double[::1] w2 = np.zeros(6)
 
+        unsigned int i, j
+
     for i in range(n):
         sat_rotation_matrix(&w_sat[i,0], &R[0,0])
         to_sat_coords(&w[i,0], &R[0,0], &w_prime[0])
@@ -187,6 +190,8 @@ cpdef _test_car_to_cyl_roundtrip():
         double[::1] cyl = np.zeros(6)
         double[::1] w2 = np.zeros(6)
 
+        unsigned int i, j
+
     for i in range(n):
         car_to_cyl(&w[i,0], &cyl[0])
         cyl_to_car(&cyl[0], &w2[0])
@@ -201,6 +206,8 @@ cpdef _test_cyl_to_car_roundtrip():
         double[:,::1] cyl = np.random.uniform(0,2*np.pi,size=(n,6))
         double[::1] w = np.zeros(6)
         double[::1] cyl2 = np.zeros(6)
+
+        unsigned int i, j
 
     for i in range(n):
         cyl_to_car(&cyl[i,0], &w[0])
