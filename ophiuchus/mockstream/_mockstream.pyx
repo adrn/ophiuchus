@@ -1,6 +1,6 @@
 # coding: utf-8
 # cython: boundscheck=True
-# cython: debug=True
+# cython: debug=False
 # cython: nonecheck=False
 # cython: cdivision=True
 # cython: wraparound=False
@@ -129,6 +129,10 @@ cpdef mock_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
     # container for only current positions of all particles
     cdef double[::1] w = np.empty(nparticles*ndim)
 
+    # beginning times for each particle
+    cdef double[::1] t1 = np.empty(nparticles)
+    cdef double t_end = t[ntimes-1]
+
     # -------
 
     # copy over initial conditions from progenitor orbit to each streakline star
@@ -149,6 +153,9 @@ cpdef mock_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
     for j in range(nsteps):
         if (j % release_every) != 0:
             continue
+
+        t1[2*i] = t[j]
+        t1[2*i+1] = t[j]
 
         # angular velocity
         d = sqrt(prog_w[j,0]*prog_w[j,0] +
@@ -192,16 +199,10 @@ cpdef mock_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
 
         i += 1
 
-    i = 1
-    for j in range(nsteps):
-        if j % release_every == 0:
-            this_norbits = 2*i
-            this_ndim = ndim * this_norbits
-            i += 1
-
-        res = dop853(this_ndim, <FcnEqDiff> Fwrapper,
-                     <GradFn>cpotential.c_gradient, &(cpotential._parameters[0]), this_norbits,
-                     t[j], &w[0], t[j+1], &rtol, &atol, 0, NULL, 0,
+    for i in range(nparticles):
+        res = dop853(ndim, <FcnEqDiff> Fwrapper,
+                     <GradFn>cpotential.c_gradient, &(cpotential._parameters[0]), 1,
+                     t1[i], &w[i*ndim], t_end, &rtol, &atol, 0, NULL, 0,
                      NULL, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, dt0, nmax, 0, 1, 0, NULL, 0);
 
         if res == -1:
