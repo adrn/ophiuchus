@@ -108,7 +108,7 @@ class MockStreamGrid(OphOrbitGridExperiment):
             result['error_code'] = 2
             return result
 
-        allw = align_ensemble(np.vstack((ww[-1], stream))[None])
+        allw = np.vstack((ww[-1], stream))
 
         result['w'] = allw
         result['dt'] = float(dt)
