@@ -123,7 +123,7 @@ def main(output_path, potential_file, data_file, sign, dt, nsteps,
 
     logger.debug("Writing output to: {}".format(output_file))
     with open(output_file, 'w') as f:
-        sampler.lnpostfn = sampler.lnprobfn = sampler.args = None
+        sampler.pool = sampler.lnpostfn = sampler.lnprobfn = sampler.args = None
         pickle.dump(sampler, f)
 
 if __name__ == "__main__":
