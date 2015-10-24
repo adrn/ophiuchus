@@ -10,20 +10,16 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 import cPickle as pickle
 import os
 import sys
+import time
 
 # Third-party
 from astropy import log as logger
 import astropy.coordinates as coord
 import astropy.units as u
 import emcee
-import matplotlib.pyplot as pl
 import numpy as np
-import scipy.optimize as so
 
 # Custom
-import gary.coordinates as gc
-import gary.dynamics as gd
-import gary.integrate as gi
 import gary.potential as gp
 from gary.units import galactic
 import gary.orbitfit as orbitfit
@@ -55,7 +51,6 @@ def main(output_path, potential_file, data_file, sign, dt, nsteps,
     ff = "{}_{}walkers_{}steps_{}sign.pickle".format(potential_name, nwalkers, nsteps, sign)
     output_file = os.path.join(os.path.abspath(output_path), ff)
     if os.path.exists(output_file) and overwrite:
-        import time
         time.sleep(0.5)
         os.remove(output_file)
 
@@ -121,9 +116,10 @@ def main(output_path, potential_file, data_file, sign, dt, nsteps,
                                     pool=pool, args=args)
 
     logger.info("Starting MCMC sampling...")
+    _t1 = time.time()
     pos,prob,state = sampler.run_mcmc(p0, nsteps)
     pool.close()
-    logger.info("...done sampling.")
+    logger.info("...done sampling after {} seconds.".format(time.time()-_t1))
 
     logger.debug("Writing output to: {}".format(output_file))
     with open(output_file, 'w') as f:
