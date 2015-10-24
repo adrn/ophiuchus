@@ -99,7 +99,8 @@ def main(output_path, potential_file, data_file, sign, dt, nsteps,
 
     # initial guess at integration time
     integration_time = 6. # Myr
-    args = (data_coord, data[3:], errs, potential, sign*dt, R, reference_frame, np.radians(0.1))
+    args = (data_coord, data[3:], errs, potential, sign*dt, R,
+            reference_frame, np.radians(0.02))
     _p0 = x0 + (sign*integration_time,)
 
     ndim = len(_p0)
