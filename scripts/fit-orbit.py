@@ -114,7 +114,7 @@ def main(output_path, potential_file, data_file, sign, dt, nsteps,
     p0[:,2] = np.random.normal(_p0[2], errs[3][ix]/10., size=nwalkers)
     p0[:,3] = np.random.normal(_p0[3], errs[4][ix]/10., size=nwalkers)
     p0[:,4] = np.random.normal(_p0[4], errs[5][ix]/10., size=nwalkers)
-    p0[:,5] = np.random.uniform(6., 16., size=nwalkers)
+    p0[:,5] = np.random.uniform(integration_time, 0.1, size=nwalkers)
 
     sampler = emcee.EnsembleSampler(nwalkers=nwalkers, dim=ndim,
                                     lnpostfn=orbitfit.ln_posterior,
