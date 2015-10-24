@@ -76,7 +76,7 @@ def main(output_path, potential_file, data_file, sign, dt, nsteps,
     # make astropy coordinate objects and rotate into stream coordinates
     data_coord = coord.ICRS(ra=tbl['ra']*u.degree, dec=tbl['dec']*u.degree, distance=dists)\
                       .transform_to(coord.Galactic)
-    R = orbitfit.compute_stream_rotation_matrix(data_coord, align_lon=True)
+    R = orbitfit.compute_stream_rotation_matrix(data_coord, align_lon='max')
     data_rot = orbitfit.rotate_sph_coordinate(data_coord, R)
 
     # containers containing data and uncertainties in correct units
