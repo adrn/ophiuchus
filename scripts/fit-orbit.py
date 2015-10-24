@@ -17,6 +17,7 @@ from astropy import log as logger
 import astropy.coordinates as coord
 import astropy.units as u
 import emcee
+import kombine
 import numpy as np
 
 # Custom
@@ -29,7 +30,8 @@ from gary.util import get_pool
 import ophiuchus.potential as op
 
 def main(output_path, potential_file, data_file, sign, dt, nsteps,
-         nwalkers=None, mpi=False, overwrite=False, seed=42):
+         nwalkers=None, mpi=False, overwrite=False, seed=42,
+         mcmc_sampler='emcee'):
     np.random.seed(seed)
     pool = get_pool(mpi=mpi)
 
@@ -112,19 +114,33 @@ def main(output_path, potential_file, data_file, sign, dt, nsteps,
     p0[:,4] = np.random.normal(_p0[4], errs[5][ix]/10., size=nwalkers)
     p0[:,5] = np.random.uniform(integration_time, 0.1, size=nwalkers)
 
-    sampler = emcee.EnsembleSampler(nwalkers=nwalkers, dim=ndim,
-                                    lnpostfn=orbitfit.ln_posterior,
-                                    pool=pool, args=args)
+    if mcmc_sampler == 'emcee':
+        sampler = emcee.EnsembleSampler(nwalkers=nwalkers, dim=ndim,
+                                        lnpostfn=orbitfit.ln_posterior,
+                                        pool=pool, args=args)
 
-    logger.info("Starting MCMC sampling...")
-    _t1 = time.time()
-    pos,prob,state = sampler.run_mcmc(p0, nsteps)
-    pool.close()
-    logger.info("...done sampling after {} seconds.".format(time.time()-_t1))
+        logger.info("Starting MCMC sampling...")
+        _t1 = time.time()
+        pos,prob,state = sampler.run_mcmc(p0, nsteps)
+        pool.close()
+        logger.info("...done sampling after {} seconds.".format(time.time()-_t1))
+
+        sampler.pool = sampler.lnpostfn = sampler.lnprobfn = sampler.args = None
+    elif mcmc_sampler == 'kombine':
+        sampler = kombine.Sampler(nwalkers, ndim, orbitfit.ln_posterior,
+                                  pool=pool, args=args)
+
+        logger.info("Starting MCMC burn-in...")
+        p, post, q = sampler.burnin(p0)
+
+        logger.info("Starting MCMC sampling...")
+        p, post, q = sampler.run_mcmc(nsteps)
+        logger.info("...done sampling after {} seconds.".format(time.time()-_t1))
+
+        sampler.pool = sampler._get_lnpost = sampler._lnpost_args = None
 
     logger.debug("Writing output to: {}".format(output_file))
     with open(output_file, 'w') as f:
-        sampler.pool = sampler.lnpostfn = sampler.lnprobfn = sampler.args = None
         pickle.dump(sampler, f)
 
 if __name__ == "__main__":
@@ -158,6 +174,9 @@ if __name__ == "__main__":
     parser.add_argument("--nsteps", dest="nsteps", type=int, required=True,
                         help="Number of steps to take MCMC.")
 
+    parser.add_argument("--sampler", dest="mcmc_sampler", type=str, default='emcee',
+                        help="Which sampler to use. emcee or kombine.")
+
     args = parser.parse_args()
 
     if args.verbose:
@@ -170,7 +189,8 @@ if __name__ == "__main__":
     try:
         main(args.output_path, args.potential_file, data_file=args.data_file,
              sign=args.sign, dt=args.dt, nsteps=args.nsteps,
-             nwalkers=args.nwalkers, mpi=args.mpi, overwrite=args.overwrite)
+             nwalkers=args.nwalkers, mpi=args.mpi, overwrite=args.overwrite,
+             mcmc_sampler=args.mcmc_sampler)
     except:
         sys.exit(1)
 
