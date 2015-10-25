@@ -50,7 +50,7 @@ def main(output_path, potential_file, data_file, sign, dt, nsteps,
 
     # filename for saving
     potential_name = os.path.splitext(os.path.basename(potential_file))[0]
-    ff = "{}_{}walkers_{}steps_{}sign.pickle".format(potential_name, nwalkers, nsteps, sign)
+    ff = "{}_{}walkers_{}steps_{}sign_{}.pickle".format(potential_name, nwalkers, nsteps, sign, mcmc_sampler)
     output_file = os.path.join(os.path.abspath(output_path), ff)
     if os.path.exists(output_file) and overwrite:
         time.sleep(0.5)
