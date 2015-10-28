@@ -18,6 +18,7 @@ cimport numpy as np
 np.import_array()
 
 from libc.math cimport M_PI
+from cpython.exc cimport PyErr_CheckSignals
 
 from gary.potential.cpotential cimport _CPotential
 from ._coord cimport (sat_rotation_matrix, to_sat_coords, from_sat_coords,
@@ -213,6 +214,8 @@ cpdef mock_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
             raise RuntimeError("Step size becomes too small.")
         elif res == -4:
             raise RuntimeError("The problem is probably stff (interrupted).")
+
+        PyErr_CheckSignals()
 
     return np.asarray(w).reshape(nparticles, ndim)
 
