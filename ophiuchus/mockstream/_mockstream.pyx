@@ -24,7 +24,7 @@ from gary.potential.cpotential cimport _CPotential
 from ._coord cimport (sat_rotation_matrix, to_sat_coords, from_sat_coords,
                       cyl_to_car, car_to_cyl)
 
-__all__ = ['streakline_stream', 'fardal_stream', 'apw_stream']
+__all__ = ['streakline_stream', 'fardal_stream', 'dissolved_stream']
 
 cdef extern from "math.h":
     double sqrt(double x) nogil
@@ -52,8 +52,8 @@ cdef extern from "stdio.h":
 
 cpdef mock_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
                   int release_every,
-                  double[::1] k_mean, double[::1] k_disp,
-                  double G, double[::1] prog_mass,
+                  _k_mean, _k_disp,
+                  double G, _prog_mass,
                   double atol=1E-10, double rtol=1E-10, int nmax=0):
     """
     mock_stream(cpotential, t, prog_w, release_every, k_mean, k_disp, G, prog_mass, atol, rtol, nmax)
@@ -74,15 +74,16 @@ cpdef mock_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
     k_mean : `numpy.ndarray`
         Array of mean ``k`` values (see Fardal et al. 2015). These are used to determine
         the exact prescription for generating the mock stream. The components are for:
-        ``(R,phi,z,vR,vphi,vz)``.
+        ``(R,phi,z,vR,vphi,vz)``. If 1D, assumed constant in time. If 2D, time axis is axis 0.
     k_disp : `numpy.ndarray`
         Array of ``k`` value dispersions (see Fardal et al. 2015). These are used to determine
         the exact prescription for generating the mock stream. The components are for:
-        ``(R,phi,z,vR,vphi,vz)``.
+        ``(R,phi,z,vR,vphi,vz)``. If 1D, assumed constant in time. If 2D, time axis is axis 0.
     G : numeric
         The value of the gravitational constant, G, in the unit system used.
-    prog_mass : `numpy.ndarray`
-        The mass of the progenitor at each time. Should have shape ``(ntimesteps,)``.
+    prog_mass : float or `numpy.ndarray`
+        The mass of the progenitor or the mass at each time. Should be a scalar or have
+        shape ``(ntimesteps,)``.
     atol : numeric (optional)
         Passed to the integrator. Absolute tolerance parameter. Default is 1E-10.
     rtol : numeric (optional)
@@ -121,6 +122,12 @@ cpdef mock_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
         double[::1] eps = np.zeros(3) # used for 2nd derivative estimation
         double[:,::1] R = np.zeros((3,3)) # rotation matrix
 
+        double[::1] prog_mass = np.ascontiguousarray(np.atleast_1d(_prog_mass))
+        double[:,::1] k_mean = np.ascontiguousarray(np.atleast_2d(_k_mean))
+        double[:,::1] k_disp = np.ascontiguousarray(np.atleast_2d(_k_disp))
+        double[::1] mu_k
+        double[::1] sigma_k
+
     # figure out how many particles are going to be released into the "stream"
     if nsteps % release_every == 0:
         nparticles = 2 * (nsteps // release_every)
@@ -158,6 +165,18 @@ cpdef mock_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
         t1[2*i] = t[j]
         t1[2*i+1] = t[j]
 
+        if prog_mass.shape[0] == 1:
+            M = prog_mass[0]
+        else:
+            M = prog_mass[j]
+
+        if k_mean.shape[0] == 1:
+            mu_k = k_mean[0]
+            sigma_k = k_disp[0]
+        else:
+            mu_k = k_mean[j]
+            sigma_k = k_disp[j]
+
         # angular velocity
         d = sqrt(prog_w[j,0]*prog_w[j,0] +
                  prog_w[j,1]*prog_w[j,1] +
@@ -166,7 +185,7 @@ cpdef mock_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
 
         # gradient of potential in radial direction
         f = Om*Om - cpotential._d2_dr2(t[j], &prog_w[j,0], &eps[0], G)
-        r_tide = (G*prog_mass[j] / f)**(1/3.)
+        r_tide = (G*M / f)**(1/3.)
 
         # the rotation matrix to transform from satellite coords to normal
         sat_rotation_matrix(&prog_w[j,0], &R[0,0])
@@ -174,10 +193,10 @@ cpdef mock_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
         car_to_cyl(&prog_w_prime[0], &prog_cyl[0])
 
         for k in range(6):
-            if k_disp[k] > 0:
-                ks[k] = np.random.normal(k_mean[k], k_disp[k])
+            if sigma_k[k] > 0:
+                ks[k] = np.random.normal(mu_k[k], sigma_k[k])
             else:
-                ks[k] = k_mean[k]
+                ks[k] = mu_k[k]
 
         # eject stars at tidal radius with same angular velocity as progenitor
         cyl[0] = prog_cyl[0] + ks[0]*r_tide
@@ -337,14 +356,14 @@ cpdef fardal_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
                        G, prog_mass,
                        atol=atol, rtol=rtol, nmax=nmax)
 
-cpdef apw_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
-                 int release_every,
-                 double G, double[::1] prog_mass,
-                 double atol=1E-10, double rtol=1E-10, int nmax=0):
+cpdef dissolved_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
+                       int disrupt_idx, int release_every,
+                       double G, double[::1] prog_mass,
+                       double atol=1E-10, double rtol=1E-10, int nmax=0):
     """
-    apw_stream(cpotential, t, prog_w, release_every, G, prog_mass, atol, rtol, nmax)
+    dissolved_stream(cpotential, t, prog_w, t_disrupt, release_every, G, prog_mass, atol, rtol, nmax)
 
-    Generate a mock stellar stream using the Streakline method.
+    The same as the Fardal stream above, but turns k_mean=0 at some time.
 
     Parameters
     ----------
@@ -355,6 +374,8 @@ cpdef apw_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
     prog_w : `numpy.ndarray`
         The 6D coordinates for the orbit of the progenitor system at all times.
         Should have shape ``(ntimesteps,6)``.
+    disrupt_idx : float
+        The index (in time) at which the stream fully dissolves.
     release_every : int
         Release particles at the Lagrange points every X timesteps.
     G : numeric
@@ -369,26 +390,31 @@ cpdef apw_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog_w,
         Passed to the integrator.
     """
     cdef:
-        double[::1] k_mean = np.zeros(6)
-        double[::1] k_disp = np.zeros(6)
+        double[:,::1] k_mean = np.zeros((len(t),6))
+        double[:,::1] k_disp = np.zeros((len(t),6))
+        int i
 
-    k_mean[0] = 1. # R
-    k_disp[0] = 0.25
+    for i in range(len(t)):
+        if i < disrupt_idx:
+            k_mean[i,0] = 2. # R, same as fardal
+        else:
+            k_mean[i,0] = 0.
+        k_disp[i,0] = 0.5
 
-    k_mean[1] = 0. # phi
-    k_disp[1] = 0.
+        k_mean[i,1] = 0. # phi
+        k_disp[i,1] = 0.
 
-    k_mean[2] = 0. # z
-    k_disp[2] = 0.5
+        k_mean[i,2] = 0. # z
+        k_disp[i,2] = 0.5
 
-    k_mean[3] = 0. # vR
-    k_disp[3] = 0.
+        k_mean[i,3] = 0. # vR
+        k_disp[i,3] = 0.
 
-    k_mean[4] = 0.3 # vt
-    k_disp[4] = 0.5
+        k_mean[i,4] = 0.3 # vt
+        k_disp[i,4] = 0.5
 
-    k_mean[5] = 0. # vz
-    k_disp[5] = 0.5
+        k_mean[i,5] = 0. # vz
+        k_disp[i,5] = 0.5
 
     return mock_stream(cpotential, t, prog_w,
                        release_every,
