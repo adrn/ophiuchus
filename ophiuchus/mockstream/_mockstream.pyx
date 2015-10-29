@@ -361,7 +361,7 @@ cpdef dissolved_stream(_CPotential cpotential, double[::1] t, double[:,::1] prog
                        double G, double[::1] prog_mass,
                        double atol=1E-10, double rtol=1E-10, int nmax=0):
     """
-    dissolved_stream(cpotential, t, prog_w, t_disrupt, release_every, G, prog_mass, atol, rtol, nmax)
+    dissolved_stream(cpotential, t, prog_w, disrupt_idx, release_every, G, prog_mass, atol, rtol, nmax)
 
     The same as the Fardal stream above, but turns k_mean=0 at some time.
 
