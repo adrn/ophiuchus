@@ -16,31 +16,100 @@ import time
 from astropy import log as logger
 import astropy.coordinates as coord
 import astropy.units as u
-import emcee
-import kombine
+import matplotlib.pyplot as pl
 import numpy as np
+import scipy.optimize as so
 
 # Custom
+import gary.integrate as gi
+import gary.coordinates as gc
 import gary.potential as gp
 from gary.units import galactic
-import gary.orbitfit as orbitfit
+from gary.dynamics import orbitfit
 from gary.observation import distance
-from gary.util import get_pool
 
+from ophiuchus import galactocentric_frame, vcirc, vlsr
 import ophiuchus.potential as op
 
-def main(output_path, potential_file, data_file, sign, dt, nsteps,
-         nwalkers=None, mpi=False, overwrite=False, seed=42,
-         mcmc_sampler='emcee'):
+lon_lims = (-0.2, 6.2) # deg
+dist_lims = (5.5, 10.) # kpc
+vlos_lims = (230, 325.) # km/s
+def plot_data_orbit(data, errs, data_coord, data_rot, w0_obs, potential, R, integration_time=-15.):
+    # the fit initial conditions in rotated stream coordinates
+    phi2_0 = w0_obs[0]*u.radian
+    dist_0 = w0_obs[1]*u.kpc
+    mul_0 = w0_obs[2]*u.rad/u.Myr
+    mub_0 = w0_obs[3]*u.rad/u.Myr
+    vr_0 = w0_obs[4]*u.kpc/u.Myr
+
+    # convert position from stream coordinates to data coordinate frame
+    sph = coord.SphericalRepresentation(lon=0.*u.radian, lat=phi2_0, distance=dist_0)
+    xyz = sph.represent_as(coord.CartesianRepresentation).xyz.value
+    in_frame_car = coord.CartesianRepresentation(R.T.dot(xyz).T*u.kpc)
+    initial_coord = data_coord.realize_frame(in_frame_car)
+
+    # now convert to galactocentric coordinates
+    x0 = initial_coord.transform_to(galactocentric_frame).cartesian.xyz.decompose(galactic).value
+    v0 = gc.vhel_to_gal(initial_coord, pm=(mul_0,mub_0), rv=vr_0,
+                        galactocentric_frame=galactocentric_frame,
+                        vcirc=vcirc, vlsr=vlsr).decompose(galactic).value
+    w0 = np.append(x0, v0)
+
+    t,w = potential.integrate_orbit(w0, dt=np.sign(integration_time)*0.1, t1=0., t2=integration_time, Integrator=gi.DOPRI853Integrator)
+    w = w[:,0]
+    w_coord = galactocentric_frame.realize_frame(coord.CartesianRepresentation(w[:,:3].T*u.kpc)).transform_to(data_coord)
+    w_rot_coord = orbitfit.rotate_sph_coordinate(w_coord, R)
+    w_vel = gc.vgal_to_hel(w_coord, w[:,3:].T*u.kpc/u.Myr,
+                           galactocentric_frame=galactocentric_frame, vcirc=vcirc, vlsr=vlsr)
+
+    fig,axes = pl.subplots(5,1,figsize=(4,15),sharex=True)
+
+    # data
+    x = data_rot.lon.degree
+#     x = np.cos(data_rot.lon)
+    axes[0].plot(x, data_rot.lat.degree, marker='o', ls='none')
+#     axes[0].plot(x, np.cos(data_rot.lat), marker='o', ls='none')
+    axes[1].errorbar(x, data[2].value, errs[2].value, marker='o', ls='none')
+    axes[2].errorbar(x, data[3].to(u.mas/u.yr).value, errs[3].to(u.mas/u.yr).value, marker='o', ls='none')
+    axes[3].errorbar(x, data[4].to(u.mas/u.yr).value, errs[4].to(u.mas/u.yr).value, marker='o', ls='none')
+    axes[4].errorbar(x, data[5].to(u.km/u.s).value, errs[5].to(u.km/u.s).value, marker='o', ls='none')
+
+    # orbit
+    x = w_rot_coord.lon.degree
+#     x = np.cos(w_rot_coord.lon)
+    axes[0].plot(x, w_rot_coord.lat.degree, marker=None)
+#     axes[0].plot(x, np.cos(w_rot_coord.lat), marker=None)
+    axes[1].plot(x, w_rot_coord.distance.decompose(galactic).value, marker=None)
+    axes[2].plot(x, w_vel[0].to(u.mas/u.yr).value, marker=None)
+    axes[3].plot(x, w_vel[1].to(u.mas/u.yr).value, marker=None)
+    axes[4].plot(x, w_vel[2].to(u.km/u.s).value, marker=None)
+
+#     axes[-1].set_xlabel(r'$\cos(\phi_1)$')
+    axes[-1].set_xlabel(r'$\phi_1$ [deg]')
+    axes[0].set_ylabel(r'$\phi_2$ [deg]')
+    axes[1].set_ylabel(r'$d$ [kpc]')
+    axes[2].set_ylabel(r'$\mu_l$ [mas yr$^{-1}$]')
+    axes[3].set_ylabel(r'$\mu_b$ [mas yr$^{-1}$]')
+    axes[4].set_ylabel(r'$v_{\rm los}$ [km s$^{-1}$]')
+
+    axes[0].set_xlim(lon_lims)
+    axes[0].set_ylim(-1,1)
+
+    axes[1].set_ylim(dist_lims)
+    axes[2].set_ylim(-12, 0)
+    axes[3].set_ylim(-2, 8)
+    axes[4].set_ylim(vlos_lims)
+
+    return fig, w0
+
+def main(output_path, potential_file, data_file, sign, dt, overwrite=False, seed=42):
     np.random.seed(seed)
-    pool = get_pool(mpi=mpi)
 
     # Solar position and motion
     reference_frame = dict()
-    reference_frame['galactocentric_frame'] = coord.Galactocentric(z_sun=0.*u.pc,
-                                                                   galcen_distance=8*u.kpc)
-    reference_frame['vcirc'] = 220.*u.km/u.s
-    reference_frame['vlsr'] = [-11.1, 24, 7.25]*u.km/u.s
+    reference_frame['galactocentric_frame'] = galactocentric_frame
+    reference_frame['vcirc'] = vcirc
+    reference_frame['vlsr'] = vlsr
 
     # Load the potential object
     try:
@@ -50,7 +119,7 @@ def main(output_path, potential_file, data_file, sign, dt, nsteps,
 
     # filename for saving
     potential_name = os.path.splitext(os.path.basename(potential_file))[0]
-    ff = "{}_{}walkers_{}steps_{}sign_{}.pickle".format(potential_name, nwalkers, nsteps, sign, mcmc_sampler)
+    ff = "{}_{}sign.pickle".format(potential_name, sign)
     output_file = os.path.join(os.path.abspath(output_path), ff)
     if os.path.exists(output_file) and overwrite:
         time.sleep(0.5)
@@ -62,7 +131,7 @@ def main(output_path, potential_file, data_file, sign, dt, nsteps,
 
     # ------------------------------------------------------------------------
     # read and prepare data
-    tbl = np.genfromtxt(data_file, dtype=None, skiprows=1, names=True)
+    tbl = np.genfromtxt(data_file, dtype=None, skip_header=2, names=True)
 
     dists = []
     dist_errs = []
@@ -94,8 +163,8 @@ def main(output_path, potential_file, data_file, sign, dt, nsteps,
             (tbl['err_mu_b']*u.mas/u.yr).decompose(galactic),
             (tbl['err_v_los']*u.km/u.s).decompose(galactic)]
 
-    # for initial guess for inference, take star with smallest phi1
-    ix = data_rot.lon.argmin()
+    # for initial guess for inference, take the star with smallest phi1 as the pivot
+    ix = data_rot.lon.argmin() # HACK: should be customizable
     x0 = (data_rot.lat.decompose(galactic).value[ix],) + \
         tuple([data[j][ix].decompose(galactic).value for j in range(2,6)])
 
@@ -103,45 +172,88 @@ def main(output_path, potential_file, data_file, sign, dt, nsteps,
     integration_time = 6. # Myr
     args = (data_coord, data[3:], errs, potential, sign*dt, R,
             reference_frame, np.radians(0.1))
-    _p0 = x0 + (sign*integration_time,)
 
-    ndim = len(_p0)
-    p0 = np.zeros((nwalkers,ndim))
-    p0[:,0] = np.random.normal(_p0[0], np.radians(0.001), size=nwalkers)
-    p0[:,1] = np.random.normal(_p0[1], errs[2][ix]/10., size=nwalkers)
-    p0[:,2] = np.random.normal(_p0[2], errs[3][ix]/10., size=nwalkers)
-    p0[:,3] = np.random.normal(_p0[3], errs[4][ix]/10., size=nwalkers)
-    p0[:,4] = np.random.normal(_p0[4], errs[5][ix]/10., size=nwalkers)
-    p0[:,5] = np.random.uniform(integration_time, 0.1, size=nwalkers)
+    # first minimize
+    p0 = tuple(x0) + (sign*integration_time,)
+    args = (data_coord,
+            [d for d in data[3:]],
+            [e for e in errs],
+            potential, sign*dt, R, reference_frame,
+            np.radians(0.1), 0.025, 0.002) # phi2_sigma, d_sigma, vlos_sigma
 
-    if mcmc_sampler == 'emcee':
-        sampler = emcee.EnsembleSampler(nwalkers=nwalkers, dim=ndim,
-                                        lnpostfn=orbitfit.ln_posterior,
-                                        pool=pool, args=args)
+    # res = so.minimize(lambda *args,**kwargs: -orbitfit.ln_posterior(*args, **kwargs),
+    #                   x0=p0, method='powell', args=args)
+    # X1 = res.x
+    # logger.info("Minimized params: {}".format(X1))
+    # X1 = [-2.42957225e-03, 8.52925165e+00, -2.83008745e-02,
+    #       1.01989550e-02, 2.92598768e-01, -7.08827100e+00] # TESTING
+    X1 = [-2.30396525e-03, 8.75970429e+00, -2.72026927e-02, 1.01370688e-02, 2.92748461e-01, -7.29571368e+00]
+    integ_time = X1[5]
+    # integ_time = -8. # TESTING
 
-        logger.info("Starting MCMC sampling...")
-        _t1 = time.time()
-        pos,prob,state = sampler.run_mcmc(p0, nsteps)
-        pool.close()
-        logger.info("...done sampling after {} seconds.".format(time.time()-_t1))
+    # TESTING
+    # fig,w0 = plot_data_orbit(data, errs, data_coord, data_rot, X1[:5], potential, R, integration_time=integ_time)
+    # pl.show()
 
-        sampler.pool = sampler.lnpostfn = sampler.lnprobfn = sampler.args = None
-    elif mcmc_sampler == 'kombine':
-        sampler = kombine.Sampler(nwalkers, ndim, orbitfit.ln_posterior,
-                                  pool=pool, args=args)
+    # D alone
+    # testf = lambda p: orbitfit.chi(list(X1[0:1]) + [p] + list(X1[2:5]), integ_time, *args)
+    # vals = np.linspace(-3,3,64) + X1[1]
+    # res = []
+    # for v in vals:
+    #     print(np.sum(testf(v)**2))
+    #     res.append(np.sum(testf(v)**2))
 
-        logger.info("Starting MCMC burn-in...")
-        p, post, q = sampler.burnin(p0)
+    # vr
+    # testf = lambda p: orbitfit.chi(list(X1[0:4]) + [p] + list(X1[5:]), integ_time, *args)
+    # vals = np.linspace(-0.02,0.02) + X1[4]
+    # res = []
+    # for v in vals:
+    #     print(np.sum(testf(v)**2))
+    #     res.append(np.sum(testf(v)**2))
 
-        logger.info("Starting MCMC sampling...")
-        p, post, q = sampler.run_mcmc(nsteps)
-        logger.info("...done sampling after {} seconds.".format(time.time()-_t1))
+    # pl.plot(vals, res)
+    # pl.show()
+    # return
+    # -------------------------------------------
 
-        sampler.pool = sampler._get_lnpost = sampler._lnpost_args = None
+    # now use that as starting point for leastsq on the likelihood
+    # res = so.leastsq(lambda p,*args,**kwargs: orbitfit.chi([X1[0]] + list(p), integ_time, *args, **kwargs),
+    #                  x0=X1[1:5], args=args, full_output=True,
+    #                  diag=np.array([1E-5, 1E-1, 1E-1, 1E-4])**2, factor=1.) # testing, ftol=1E-4, xtol=1E-4)
+    # X2 = [X1[0]] + list(res[0])
 
-    logger.debug("Writing output to: {}".format(output_file))
-    with open(output_file, 'w') as f:
-        pickle.dump(sampler, f)
+    # TESTING
+
+    # just d
+    # res = so.leastsq(lambda p,*args,**kwargs: orbitfit.chi([X1[0]] + list(p) + list(X1[2:5]), integ_time, *args, **kwargs),
+    #                  x0=X1[1:2], args=args, full_output=True,
+    #                  diag=np.array([1E-5])**2, factor=1.) # testing, ftol=1E-4, xtol=1E-4)
+    # X2 = [X1[0]] + list(res[0]) + list(X1[2:5])
+
+    # d, vr
+    # res = so.leastsq(lambda p,*args,**kwargs: orbitfit.chi([X1[0]] + [p[0]] + list(X1[2:4]) + [p[1]], integ_time, *args, **kwargs),
+    #                  x0=[X1[1]] + [X1[4]], args=args, full_output=True,
+    #                  diag=np.array([1E-5,1E-4])**2, factor=1.) # testing, ftol=1E-4, xtol=1E-4)
+    # X2 = [X1[0]] + [res[0][0]] + list(X1[2:4]) + [res[0][1]]
+
+    # pms
+    res = so.leastsq(lambda p,*args,**kwargs: orbitfit.chi(list(X1[:2]) + list(p) + [X1[4]], integ_time, *args, **kwargs),
+                     x0=X1[2:4], args=args, full_output=True) # testing, ftol=1E-4, xtol=1E-4)
+    X2 = list(X1[:2]) + list(res[0]) + [X1[4]]
+    # -------
+
+    cov = res[1]
+    print(np.sqrt(np.diag(cov)))
+    print(cov)
+    print(np.array(X2) - np.array(X1)[:5])
+
+    fig,w0 = plot_data_orbit(data, errs, data_coord, data_rot, X2[:5], potential, R, integration_time=integ_time)
+    fig.tight_layout()
+    pl.show()
+
+    # logger.debug("Writing output to: {}".format(output_file))
+    # with open(output_file, 'w') as f:
+    #     pickle.dump(sampler, f)
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
@@ -155,8 +267,6 @@ if __name__ == "__main__":
                         default=False, help="Be quiet! (default = False)")
     parser.add_argument("-o", "--overwrite", dest="overwrite", default=False,
                         action="store_true", help="Overwrite any existing data.")
-    parser.add_argument("--mpi", dest="mpi", default=False, action="store_true",
-                        help="Run with MPI.")
 
     parser.add_argument("--output-path", dest="output_path",
                         required=True, help="Path to save the output file.")
@@ -169,14 +279,6 @@ if __name__ == "__main__":
     parser.add_argument("--dt", dest="dt", type=float, default=0.5,
                         help="Integration timestep.")
 
-    parser.add_argument("--nwalkers", dest="nwalkers", type=int, default=None,
-                        help="Number of walkers.")
-    parser.add_argument("--nsteps", dest="nsteps", type=int, required=True,
-                        help="Number of steps to take MCMC.")
-
-    parser.add_argument("--sampler", dest="mcmc_sampler", type=str, default='emcee',
-                        help="Which sampler to use. emcee or kombine.")
-
     args = parser.parse_args()
 
     if args.verbose:
@@ -186,12 +288,5 @@ if __name__ == "__main__":
     else:
         logger.setLevel(logging.INFO)
 
-    try:
-        main(args.output_path, args.potential_file, data_file=args.data_file,
-             sign=args.sign, dt=args.dt, nsteps=args.nsteps,
-             nwalkers=args.nwalkers, mpi=args.mpi, overwrite=args.overwrite,
-             mcmc_sampler=args.mcmc_sampler)
-    except:
-        sys.exit(1)
-
-    sys.exit(0)
+    main(args.output_path, args.potential_file, data_file=args.data_file,
+         sign=args.sign, dt=args.dt, overwrite=args.overwrite)
