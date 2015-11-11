@@ -105,7 +105,7 @@ def plot_data_orbit(data, errs, data_coord, data_rot, w0_obs, potential, R, inte
     return fig, w0
 
 def main(top_output_path, potential_file, data_file, sign, dt,
-         nsteps, nwalkers=None, mpi=False, overwrite=False, seed=42):
+         nsteps, nwalkers=None, mpi=False, overwrite=False, seed=42, continue_mcmc=False):
     np.random.seed(seed)
     pool = get_pool(mpi=mpi)
 
@@ -187,28 +187,49 @@ def main(top_output_path, potential_file, data_file, sign, dt,
             potential, sign*dt, R, reference_frame,
             np.radians(0.1), 0.025, 0.002) # phi2_sigma, d_sigma, vlos_sigma
 
-    # res = so.minimize(lambda *args,**kwargs: -orbitfit.ln_posterior(*args, **kwargs),
-    #                   x0=p0, method='powell', args=args)
-    # X1 = res.x
-    # logger.info("Minimized params: {}".format(X1))
-
-    # TESTING
+    # HACK: i need a way to get integ_time to the sampler when
     X1 = [-2.30396525e-03, 8.75970429e+00, -2.72026927e-02, 1.01370688e-02, 2.92748461e-01, -7.29571368e+00]
     integ_time = X1[5]
+    # ----
 
-    # use output from minimize to initialize MCMC
-    _p0 = X1[:-1]
-    ndim = len(_p0)
-    if not os.path.exists(sampler_filename):
-        # FIRE UP THE MCMC
-        if nwalkers is None:
-            nwalkers = ndim*8
-        p0 = np.zeros((nwalkers,ndim))
-        p0[:,0] = np.random.normal(_p0[0], np.radians(0.001), size=nwalkers)
-        p0[:,1] = np.random.normal(_p0[1], errs[2][ix]/100., size=nwalkers)
-        p0[:,2] = np.random.normal(_p0[2], errs[3][ix]/10000., size=nwalkers)
-        p0[:,3] = np.random.normal(_p0[3], errs[4][ix]/10000., size=nwalkers)
-        p0[:,4] = np.random.normal(_p0[4], errs[5][ix]/100., size=nwalkers)
+    if not continue_mcmc:
+        # res = so.minimize(lambda *args,**kwargs: -orbitfit.ln_posterior(*args, **kwargs),
+        #                   x0=p0, method='powell', args=args)
+        # X1 = res.x
+        # logger.info("Minimized params: {}".format(X1))
+
+        # TESTING
+        X1 = [-2.30396525e-03, 8.75970429e+00, -2.72026927e-02, 1.01370688e-02, 2.92748461e-01, -7.29571368e+00]
+        integ_time = X1[5]
+
+        # use output from minimize to initialize MCMC
+        _p0 = X1[:-1]
+        ndim = len(_p0)
+    elif continue_mcmc and not os.path.exists(sampler_filename):
+        raise IOError("Can't continue walkers -- sampler file doesn't exist!")
+
+    if not os.path.exists(sampler_filename) or continue_mcmc:
+        if not continue_mcmc:
+            # FIRE UP THE MCMC
+            if nwalkers is None:
+                nwalkers = ndim*8
+            p0 = np.zeros((nwalkers,ndim))
+            p0[:,0] = np.random.normal(_p0[0], np.radians(0.001), size=nwalkers)
+            p0[:,1] = np.random.normal(_p0[1], errs[2][ix]/100., size=nwalkers)
+            p0[:,2] = np.random.normal(_p0[2], errs[3][ix]/10000., size=nwalkers)
+            p0[:,3] = np.random.normal(_p0[3], errs[4][ix]/10000., size=nwalkers)
+            p0[:,4] = np.random.normal(_p0[4], errs[5][ix]/100., size=nwalkers)
+        else:
+            logger.debug("Loading sampler from: {}".format(sampler_filename))
+            with open(sampler_filename, 'r') as f:
+                sampler = pickle.load(f)
+
+            prev_chain = sampler.chain
+            prev_nwalkers,prev_nsteps,ndim = prev_chain.shape
+            if prev_nwalkers != nwalkers:
+                raise ValueError("If continuing walkers, nwalkers ({}) must equal "
+                                 "previous nwalkers ({})".format(nwalkers, prev_nwalkers))
+            p0 = sampler.chain[:,-1]
 
         sampler = emcee.EnsembleSampler(nwalkers=nwalkers, dim=ndim,
                                         lnpostfn=lambda p,*args,**kwargs: orbitfit.ln_posterior(list(p)+[integ_time],*args,**kwargs),
@@ -221,6 +242,9 @@ def main(top_output_path, potential_file, data_file, sign, dt,
         logger.info("...done sampling after {} seconds.".format(time.time()-_t1))
         sampler.pool = sampler.lnpostfn = sampler.lnprobfn = sampler.args = None
 
+        if continue_mcmc:
+            sampler._chain = np.hstack((prev_chain, sampler.chain))
+            logger.debug("Total nsteps: {}".format(sampler.chain.shape[1]))
         logger.debug("Writing sampler to: {}".format(sampler_filename))
         with open(sampler_filename, 'w') as f:
             pickle.dump(sampler, f)
@@ -274,7 +298,7 @@ if __name__ == "__main__":
                         help="Number of walkers.")
     parser.add_argument("--nsteps", dest="nsteps", type=int, required=True,
                         help="Number of steps to take MCMC.")
-    parser.add_argument("--continue", dest="continue", default=False,
+    parser.add_argument("--continue", dest="continue_mcmc", default=False,
                         action="store_true", help="Continue sampling from where the sampler left off.")
 
     args = parser.parse_args()
@@ -290,7 +314,7 @@ if __name__ == "__main__":
         main(args.output_path, args.potential_file, data_file=args.data_file,
              sign=args.sign, dt=args.dt, nsteps=args.nsteps,
              nwalkers=args.nwalkers, mpi=args.mpi, overwrite=args.overwrite,
-             continue=args.continue)
+             continue_mcmc=args.continue_mcmc)
     except:
         logger.error("Unexpected error! {}: {}".format(*sys.exc_info()))
         sys.exit(1)
