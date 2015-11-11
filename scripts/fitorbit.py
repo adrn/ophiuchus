@@ -104,7 +104,7 @@ def plot_data_orbit(data, errs, data_coord, data_rot, w0_obs, potential, R, inte
 
     return fig, w0
 
-def main(output_path, potential_file, data_file, sign, dt,
+def main(top_output_path, potential_file, data_file, sign, dt,
          nsteps, nwalkers=None, mpi=False, overwrite=False, seed=42):
     np.random.seed(seed)
     pool = get_pool(mpi=mpi)
@@ -121,14 +121,19 @@ def main(output_path, potential_file, data_file, sign, dt,
     except:
         potential = gp.load(potential_file, module=op)
 
-    # filename for saving
-    output_path = os.path.abspath(output_path)
+    # top-level output path for saving (this will create a subdir within output_path)
+    top_output_path = os.path.abspath(os.path.expanduser(top_output_path))
     potential_name = os.path.splitext(os.path.basename(potential_file))[0]
-    ff = "sampler_{}_{}sign.pickle".format(potential_name, sign)
-    output_file = os.path.join(output_path, ff)
-    if os.path.exists(output_file) and overwrite:
+    output_path = os.path.join(top_output_path, potential_name)
+    logger.debug("Output path: {}".format(output_path))
+
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
+
+    sampler_filename = os.path.join(output_path, "sampler.pickle")
+    if os.path.exists(sampler_filename) and overwrite:
         time.sleep(0.5)
-        os.remove(output_file)
+        os.remove(sampler_filename)
 
     # ------------------------------------------------------------------------
     # read and prepare data
@@ -149,7 +154,7 @@ def main(output_path, potential_file, data_file, sign, dt,
     R = orbitfit.compute_stream_rotation_matrix(data_coord, align_lon='max')
     data_rot = orbitfit.rotate_sph_coordinate(data_coord, R)
 
-    # containers containing data and uncertainties in correct units
+    # containers for data and uncertainties in correct units
     data = [data_coord.l.decompose(galactic),
             data_coord.b.decompose(galactic),
             dists,
@@ -191,12 +196,11 @@ def main(output_path, potential_file, data_file, sign, dt,
     X1 = [-2.30396525e-03, 8.75970429e+00, -2.72026927e-02, 1.01370688e-02, 2.92748461e-01, -7.29571368e+00]
     integ_time = X1[5]
 
-    if not os.path.exists(output_file):
+    # use output from minimize to initialize MCMC
+    _p0 = X1[:-1]
+    ndim = len(_p0)
+    if not os.path.exists(sampler_filename):
         # FIRE UP THE MCMC
-        # use output from minimize to initialize MCMC
-        _p0 = X1[:-1]
-
-        ndim = len(_p0)
         if nwalkers is None:
             nwalkers = ndim*8
         p0 = np.zeros((nwalkers,ndim))
@@ -217,12 +221,12 @@ def main(output_path, potential_file, data_file, sign, dt,
         logger.info("...done sampling after {} seconds.".format(time.time()-_t1))
         sampler.pool = sampler.lnpostfn = sampler.lnprobfn = sampler.args = None
 
-        logger.debug("Writing sampler to: {}".format(output_file))
-        with open(output_file, 'w') as f:
+        logger.debug("Writing sampler to: {}".format(sampler_filename))
+        with open(sampler_filename, 'w') as f:
             pickle.dump(sampler, f)
     else:
-        logger.debug("Loading sampler from: {}".format(output_file))
-        with open(output_file, 'r') as f:
+        logger.debug("Loading sampler from: {}".format(sampler_filename))
+        with open(sampler_filename, 'r') as f:
             sampler = pickle.load(f)
 
     # plot walker trace
@@ -263,12 +267,15 @@ if __name__ == "__main__":
     parser.add_argument("--dt", dest="dt", type=float, default=0.5,
                         help="Integration timestep.")
 
+    # emcee
     parser.add_argument("--mpi", dest="mpi", default=False, action="store_true",
                         help="Run with MPI.")
     parser.add_argument("--nwalkers", dest="nwalkers", type=int, default=None,
                         help="Number of walkers.")
     parser.add_argument("--nsteps", dest="nsteps", type=int, required=True,
                         help="Number of steps to take MCMC.")
+    parser.add_argument("--continue", dest="continue", default=False,
+                        action="store_true", help="Continue sampling from where the sampler left off.")
 
     args = parser.parse_args()
 
@@ -282,7 +289,8 @@ if __name__ == "__main__":
     try:
         main(args.output_path, args.potential_file, data_file=args.data_file,
              sign=args.sign, dt=args.dt, nsteps=args.nsteps,
-             nwalkers=args.nwalkers, mpi=args.mpi, overwrite=args.overwrite)
+             nwalkers=args.nwalkers, mpi=args.mpi, overwrite=args.overwrite,
+             continue=args.continue)
     except:
         logger.error("Unexpected error! {}: {}".format(*sys.exc_info()))
         sys.exit(1)
