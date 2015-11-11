@@ -19,6 +19,7 @@ import astropy.units as u
 import matplotlib.pyplot as pl
 import numpy as np
 import scipy.optimize as so
+import emcee
 
 # Custom
 import gary.integrate as gi
@@ -27,6 +28,7 @@ import gary.potential as gp
 from gary.units import galactic
 from gary.dynamics import orbitfit
 from gary.observation import distance
+from gary.util import get_pool
 
 from ophiuchus import galactocentric_frame, vcirc, vlsr
 import ophiuchus.potential as op
@@ -102,8 +104,10 @@ def plot_data_orbit(data, errs, data_coord, data_rot, w0_obs, potential, R, inte
 
     return fig, w0
 
-def main(output_path, potential_file, data_file, sign, dt, overwrite=False, seed=42):
+def main(output_path, potential_file, data_file, sign, dt,
+         nsteps, nwalkers=None, mpi=False, overwrite=False, seed=42):
     np.random.seed(seed)
+    pool = get_pool(mpi=mpi)
 
     # Solar position and motion
     reference_frame = dict()
@@ -118,16 +122,13 @@ def main(output_path, potential_file, data_file, sign, dt, overwrite=False, seed
         potential = gp.load(potential_file, module=op)
 
     # filename for saving
+    output_path = os.path.abspath(output_path)
     potential_name = os.path.splitext(os.path.basename(potential_file))[0]
-    ff = "{}_{}sign.pickle".format(potential_name, sign)
-    output_file = os.path.join(os.path.abspath(output_path), ff)
+    ff = "sampler_{}_{}sign.pickle".format(potential_name, sign)
+    output_file = os.path.join(output_path, ff)
     if os.path.exists(output_file) and overwrite:
         time.sleep(0.5)
         os.remove(output_file)
-
-    if os.path.exists(output_file):
-        logger.warning("Output file already exists. Exiting.")
-        return
 
     # ------------------------------------------------------------------------
     # read and prepare data
@@ -185,75 +186,58 @@ def main(output_path, potential_file, data_file, sign, dt, overwrite=False, seed
     #                   x0=p0, method='powell', args=args)
     # X1 = res.x
     # logger.info("Minimized params: {}".format(X1))
-    # X1 = [-2.42957225e-03, 8.52925165e+00, -2.83008745e-02,
-    #       1.01989550e-02, 2.92598768e-01, -7.08827100e+00] # TESTING
+
+    # TESTING
     X1 = [-2.30396525e-03, 8.75970429e+00, -2.72026927e-02, 1.01370688e-02, 2.92748461e-01, -7.29571368e+00]
     integ_time = X1[5]
-    # integ_time = -8. # TESTING
 
-    # TESTING
-    # fig,w0 = plot_data_orbit(data, errs, data_coord, data_rot, X1[:5], potential, R, integration_time=integ_time)
-    # pl.show()
+    if not os.path.exists(output_file):
+        # FIRE UP THE MCMC
+        # use output from minimize to initialize MCMC
+        _p0 = X1[:-1]
 
-    # D alone
-    # testf = lambda p: orbitfit.chi(list(X1[0:1]) + [p] + list(X1[2:5]), integ_time, *args)
-    # vals = np.linspace(-3,3,64) + X1[1]
-    # res = []
-    # for v in vals:
-    #     print(np.sum(testf(v)**2))
-    #     res.append(np.sum(testf(v)**2))
+        ndim = len(_p0)
+        if nwalkers is None:
+            nwalkers = ndim*8
+        p0 = np.zeros((nwalkers,ndim))
+        p0[:,0] = np.random.normal(_p0[0], np.radians(0.001), size=nwalkers)
+        p0[:,1] = np.random.normal(_p0[1], errs[2][ix]/100., size=nwalkers)
+        p0[:,2] = np.random.normal(_p0[2], errs[3][ix]/10000., size=nwalkers)
+        p0[:,3] = np.random.normal(_p0[3], errs[4][ix]/10000., size=nwalkers)
+        p0[:,4] = np.random.normal(_p0[4], errs[5][ix]/100., size=nwalkers)
 
-    # vr
-    # testf = lambda p: orbitfit.chi(list(X1[0:4]) + [p] + list(X1[5:]), integ_time, *args)
-    # vals = np.linspace(-0.02,0.02) + X1[4]
-    # res = []
-    # for v in vals:
-    #     print(np.sum(testf(v)**2))
-    #     res.append(np.sum(testf(v)**2))
+        sampler = emcee.EnsembleSampler(nwalkers=nwalkers, dim=ndim,
+                                        lnpostfn=lambda p,*args,**kwargs: orbitfit.ln_posterior(list(p)+[integ_time],*args,**kwargs),
+                                        pool=pool, args=args)
 
-    # pl.plot(vals, res)
-    # pl.show()
-    # return
-    # -------------------------------------------
+        logger.info("Starting MCMC sampling...")
+        _t1 = time.time()
+        pos,prob,state = sampler.run_mcmc(p0, nsteps)
+        pool.close()
+        logger.info("...done sampling after {} seconds.".format(time.time()-_t1))
+        sampler.pool = sampler.lnpostfn = sampler.lnprobfn = sampler.args = None
 
-    # now use that as starting point for leastsq on the likelihood
-    # res = so.leastsq(lambda p,*args,**kwargs: orbitfit.chi([X1[0]] + list(p), integ_time, *args, **kwargs),
-    #                  x0=X1[1:5], args=args, full_output=True,
-    #                  diag=np.array([1E-5, 1E-1, 1E-1, 1E-4])**2, factor=1.) # testing, ftol=1E-4, xtol=1E-4)
-    # X2 = [X1[0]] + list(res[0])
+        logger.debug("Writing sampler to: {}".format(output_file))
+        with open(output_file, 'w') as f:
+            pickle.dump(sampler, f)
+    else:
+        logger.debug("Loading sampler from: {}".format(output_file))
+        with open(output_file, 'r') as f:
+            sampler = pickle.load(f)
 
-    # TESTING
-
-    # just d
-    # res = so.leastsq(lambda p,*args,**kwargs: orbitfit.chi([X1[0]] + list(p) + list(X1[2:5]), integ_time, *args, **kwargs),
-    #                  x0=X1[1:2], args=args, full_output=True,
-    #                  diag=np.array([1E-5])**2, factor=1.) # testing, ftol=1E-4, xtol=1E-4)
-    # X2 = [X1[0]] + list(res[0]) + list(X1[2:5])
-
-    # d, vr
-    # res = so.leastsq(lambda p,*args,**kwargs: orbitfit.chi([X1[0]] + [p[0]] + list(X1[2:4]) + [p[1]], integ_time, *args, **kwargs),
-    #                  x0=[X1[1]] + [X1[4]], args=args, full_output=True,
-    #                  diag=np.array([1E-5,1E-4])**2, factor=1.) # testing, ftol=1E-4, xtol=1E-4)
-    # X2 = [X1[0]] + [res[0][0]] + list(X1[2:4]) + [res[0][1]]
-
-    # pms
-    res = so.leastsq(lambda p,*args,**kwargs: orbitfit.chi(list(X1[:2]) + list(p) + [X1[4]], integ_time, *args, **kwargs),
-                     x0=X1[2:4], args=args, full_output=True) # testing, ftol=1E-4, xtol=1E-4)
-    X2 = list(X1[:2]) + list(res[0]) + [X1[4]]
-    # -------
-
-    cov = res[1]
-    print(np.sqrt(np.diag(cov)))
-    print(cov)
-    print(np.array(X2) - np.array(X1)[:5])
-
-    fig,w0 = plot_data_orbit(data, errs, data_coord, data_rot, X2[:5], potential, R, integration_time=integ_time)
+    # plot walker trace
+    fig,axes = pl.subplots(ndim,1,figsize=(4,3*ndim+1))
+    for i in range(ndim):
+        axes[i].plot(sampler.chain[...,i].T, drawstyle='steps', c='k', alpha=0.25, marker=None)
     fig.tight_layout()
-    pl.show()
+    fig.savefig(os.path.join(output_path, "walkers.png"), dpi=300)
 
-    # logger.debug("Writing output to: {}".format(output_file))
-    # with open(output_file, 'w') as f:
-    #     pickle.dump(sampler, f)
+    X2 = np.median(sampler.flatchain, axis=0)
+    print(X2)
+    fig,w0 = plot_data_orbit(data, errs, data_coord, data_rot, X2, potential, R, integration_time=integ_time)
+    fig.tight_layout()
+    # fig.canvas.manager.window.raise_()
+    fig.savefig(os.path.join(output_path, "median-orbit.png"), dpi=300)
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
@@ -279,6 +263,13 @@ if __name__ == "__main__":
     parser.add_argument("--dt", dest="dt", type=float, default=0.5,
                         help="Integration timestep.")
 
+    parser.add_argument("--mpi", dest="mpi", default=False, action="store_true",
+                        help="Run with MPI.")
+    parser.add_argument("--nwalkers", dest="nwalkers", type=int, default=None,
+                        help="Number of walkers.")
+    parser.add_argument("--nsteps", dest="nsteps", type=int, required=True,
+                        help="Number of steps to take MCMC.")
+
     args = parser.parse_args()
 
     if args.verbose:
@@ -288,5 +279,12 @@ if __name__ == "__main__":
     else:
         logger.setLevel(logging.INFO)
 
-    main(args.output_path, args.potential_file, data_file=args.data_file,
-         sign=args.sign, dt=args.dt, overwrite=args.overwrite)
+    try:
+        main(args.output_path, args.potential_file, data_file=args.data_file,
+             sign=args.sign, dt=args.dt, nsteps=args.nsteps,
+             nwalkers=args.nwalkers, mpi=args.mpi, overwrite=args.overwrite)
+    except:
+        logger.error("Unexpected error! {}: {}".format(*sys.exc_info()))
+        sys.exit(1)
+
+    sys.exit(0)
