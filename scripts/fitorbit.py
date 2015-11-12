@@ -319,13 +319,9 @@ if __name__ == "__main__":
     else:
         logger.setLevel(logging.INFO)
 
-    try:
-        main(args.output_path, args.potential_file, data_file=args.data_file,
-             sign=args.sign, dt=args.dt, nsteps=args.nsteps,
-             nwalkers=args.nwalkers, mpi=args.mpi, overwrite=args.overwrite,
-             continue_mcmc=args.continue_mcmc)
-    except:
-        logger.error("Unexpected error! {}: {}".format(*sys.exc_info()))
-        sys.exit(1)
+    main(args.output_path, args.potential_file, data_file=args.data_file,
+         sign=args.sign, dt=args.dt, nsteps=args.nsteps,
+         nwalkers=args.nwalkers, mpi=args.mpi, overwrite=args.overwrite,
+         continue_mcmc=args.continue_mcmc)
 
     sys.exit(0)
