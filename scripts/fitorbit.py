@@ -104,6 +104,12 @@ def plot_data_orbit(data, errs, data_coord, data_rot, w0_obs, potential, R, inte
 
     return fig, w0
 
+class LnPostWrapper(object):
+    def __init__(self, integration_time):
+        self.integration_time = integration_time
+    def __call__(self, p, *args, **kwargs):
+        return orbitfit.ln_posterior(list(p)+[self.integration_time],*args,**kwargs)
+
 def main(top_output_path, potential_file, data_file, sign, dt,
          nsteps, nwalkers=None, mpi=False, overwrite=False, seed=42, continue_mcmc=False):
     np.random.seed(seed)
@@ -229,8 +235,9 @@ def main(top_output_path, potential_file, data_file, sign, dt,
 
         # get the integration time from minimization or cached on sampler object
         integ_time = X_minimize[5]
+        ln_posterior = LnPostWrapper(integ_time)
         sampler = emcee.EnsembleSampler(nwalkers=nwalkers, dim=ndim,
-                                        lnpostfn=lambda p,*args,**kwargs: orbitfit.ln_posterior(list(p)+[integ_time],*args,**kwargs),
+                                        lnpostfn=ln_posterior,
                                         pool=pool, args=args)
 
         logger.info("Starting MCMC sampling...")
