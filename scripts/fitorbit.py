@@ -218,7 +218,7 @@ def main(top_output_path, potential_file, data_file, sign, dt,
             # logger.info("Minimized params: {}".format(X_minimize))
 
             # TESTING
-            X_minimize = [-2.30396525e-03, 8.75970429e+00, -2.72026927e-02, 1.01370688e-02, 2.92748461e-01, -7.29571368e+00]
+            X_minimize = [-2.30396525e-03, 8.75970429e+00, -2.72026927e-02, 1.01370688e-02, 2.92748461e-01, -15.]
 
             # use output from minimize to initialize MCMC
             _p0 = X_minimize[:-1]
@@ -266,7 +266,7 @@ def main(top_output_path, potential_file, data_file, sign, dt,
     # plot walker trace
     fig,axes = pl.subplots(ndim,1,figsize=(4,3*ndim+1))
     for i in range(ndim):
-        axes[i].plot(sampler.chain[...,i].T, drawstyle='steps', c='k', alpha=0.25, marker=None)
+        axes[i].plot(sampler.chain[...,i].T, drawstyle='steps', color='k', alpha=0.25, marker=None)
     fig.tight_layout()
     fig.savefig(os.path.join(output_path, "walkers.png"), dpi=300)
 
