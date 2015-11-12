@@ -169,6 +169,7 @@ def main(top_output_path, potential_file, data_file, sign, dt,
             (tbl['err_mu_b']*u.mas/u.yr).decompose(galactic),
             (tbl['err_v_los']*u.km/u.s).decompose(galactic)]
 
+    # if not os.path.exists(minimize_file):
     # for initial guess for inference, take the star with smallest phi1 as the pivot
     ix = data_rot.lon.argmin() # HACK: should be customizable
     x0 = (data_rot.lat.decompose(galactic).value[ix],) + \
@@ -176,8 +177,6 @@ def main(top_output_path, potential_file, data_file, sign, dt,
 
     # initial guess at integration time
     integration_time = 6. # Myr
-    args = (data_coord, data[3:], errs, potential, sign*dt, R,
-            reference_frame, np.radians(0.1))
 
     # first minimize
     p0 = tuple(x0) + (sign*integration_time,)
@@ -187,39 +186,12 @@ def main(top_output_path, potential_file, data_file, sign, dt,
             potential, sign*dt, R, reference_frame,
             np.radians(0.1), 0.025, 0.002) # phi2_sigma, d_sigma, vlos_sigma
 
-    # HACK: i need a way to get integ_time to the sampler when
-    X1 = [-2.30396525e-03, 8.75970429e+00, -2.72026927e-02, 1.01370688e-02, 2.92748461e-01, -7.29571368e+00]
-    integ_time = X1[5]
-    # ----
-
-    if not continue_mcmc:
-        # res = so.minimize(lambda *args,**kwargs: -orbitfit.ln_posterior(*args, **kwargs),
-        #                   x0=p0, method='powell', args=args)
-        # X1 = res.x
-        # logger.info("Minimized params: {}".format(X1))
-
-        # TESTING
-        X1 = [-2.30396525e-03, 8.75970429e+00, -2.72026927e-02, 1.01370688e-02, 2.92748461e-01, -7.29571368e+00]
-        integ_time = X1[5]
-
-        # use output from minimize to initialize MCMC
-        _p0 = X1[:-1]
-        ndim = len(_p0)
-    elif continue_mcmc and not os.path.exists(sampler_filename):
-        raise IOError("Can't continue walkers -- sampler file doesn't exist!")
+    if continue_mcmc and not os.path.exists(sampler_filename):
+        raise ValueError("Can't continue walkers -- sampler file doesn't exist!")
 
     if not os.path.exists(sampler_filename) or continue_mcmc:
-        if not continue_mcmc:
-            # FIRE UP THE MCMC
-            if nwalkers is None:
-                nwalkers = ndim*8
-            p0 = np.zeros((nwalkers,ndim))
-            p0[:,0] = np.random.normal(_p0[0], np.radians(0.001), size=nwalkers)
-            p0[:,1] = np.random.normal(_p0[1], errs[2][ix]/100., size=nwalkers)
-            p0[:,2] = np.random.normal(_p0[2], errs[3][ix]/10000., size=nwalkers)
-            p0[:,3] = np.random.normal(_p0[3], errs[4][ix]/10000., size=nwalkers)
-            p0[:,4] = np.random.normal(_p0[4], errs[5][ix]/100., size=nwalkers)
-        else:
+
+        if continue_mcmc:
             logger.debug("Loading sampler from: {}".format(sampler_filename))
             with open(sampler_filename, 'r') as f:
                 sampler = pickle.load(f)
@@ -230,7 +202,33 @@ def main(top_output_path, potential_file, data_file, sign, dt,
                 raise ValueError("If continuing walkers, nwalkers ({}) must equal "
                                  "previous nwalkers ({})".format(nwalkers, prev_nwalkers))
             p0 = sampler.chain[:,-1]
+            ndim = p0.shape[-1]
+            X_minimize = sampler.X_minimize
 
+        else:
+            # res = so.minimize(lambda *args,**kwargs: -orbitfit.ln_posterior(*args, **kwargs),
+            #                   x0=p0, method='powell', args=args)
+            # X_minimize = res.x
+            # logger.info("Minimized params: {}".format(X_minimize))
+
+            # TESTING
+            X_minimize = [-2.30396525e-03, 8.75970429e+00, -2.72026927e-02, 1.01370688e-02, 2.92748461e-01, -7.29571368e+00]
+
+            # use output from minimize to initialize MCMC
+            _p0 = X_minimize[:-1]
+            ndim = len(_p0)
+
+            if nwalkers is None:
+                nwalkers = ndim*8
+            p0 = np.zeros((nwalkers,ndim))
+            p0[:,0] = np.random.normal(_p0[0], np.radians(0.001), size=nwalkers)
+            p0[:,1] = np.random.normal(_p0[1], errs[2][ix]/100., size=nwalkers)
+            p0[:,2] = np.random.normal(_p0[2], errs[3][ix]/10000., size=nwalkers)
+            p0[:,3] = np.random.normal(_p0[3], errs[4][ix]/10000., size=nwalkers)
+            p0[:,4] = np.random.normal(_p0[4], errs[5][ix]/100., size=nwalkers)
+
+        # get the integration time from minimization or cached on sampler object
+        integ_time = X_minimize[5]
         sampler = emcee.EnsembleSampler(nwalkers=nwalkers, dim=ndim,
                                         lnpostfn=lambda p,*args,**kwargs: orbitfit.ln_posterior(list(p)+[integ_time],*args,**kwargs),
                                         pool=pool, args=args)
@@ -240,11 +238,16 @@ def main(top_output_path, potential_file, data_file, sign, dt,
         pos,prob,state = sampler.run_mcmc(p0, nsteps)
         pool.close()
         logger.info("...done sampling after {} seconds.".format(time.time()-_t1))
-        sampler.pool = sampler.lnpostfn = sampler.lnprobfn = sampler.args = None
 
+        # so we can pickle the sampler
+        sampler.pool = sampler.lnpostfn = sampler.lnprobfn = None
+        sampler.X_minimize = X_minimize
+
+        # collect all chains
         if continue_mcmc:
             sampler._chain = np.hstack((prev_chain, sampler.chain))
             logger.debug("Total nsteps: {}".format(sampler.chain.shape[1]))
+
         logger.debug("Writing sampler to: {}".format(sampler_filename))
         with open(sampler_filename, 'w') as f:
             pickle.dump(sampler, f)
@@ -264,7 +267,6 @@ def main(top_output_path, potential_file, data_file, sign, dt,
     print(X2)
     fig,w0 = plot_data_orbit(data, errs, data_coord, data_rot, X2, potential, R, integration_time=integ_time)
     fig.tight_layout()
-    # fig.canvas.manager.window.raise_()
     fig.savefig(os.path.join(output_path, "median-orbit.png"), dpi=300)
 
 if __name__ == "__main__":
