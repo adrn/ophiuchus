@@ -42,7 +42,7 @@ class OphiuchusData(object):
         dist_errs = []
         for DM,err_DM in zip(_tbl['DM'], _tbl['err_DM']):
             d = distance(np.random.normal(DM, err_DM, size=1024)).to(u.kpc).value
-            dists.append(np.median(d))
+            dists.append(distance(DM).to(u.kpc).value)
             dist_errs.append(np.std(d))
         dists = np.array(dists)*u.kpc
         dist_errs = np.array(dist_errs)*u.kpc
@@ -50,27 +50,25 @@ class OphiuchusData(object):
         # make an astropy coordinate object from the positions
         self.coord = coord.ICRS(ra=_tbl['ra']*u.degree, dec=_tbl['dec']*u.degree, distance=dists)\
                           .transform_to(coord.Galactic)
-        self.coord_err = OrderedDict(
-            l=0.*self.coord.l.decompose(galactic),
-            b=0.*self.coord.l.decompose(galactic),
-            distance=dist_errs.decompose(galactic)
-        )
+        self.coord_err = OrderedDict()
+        self.coord_err['l'] = 0.*self.coord.l.decompose(galactic)
+        self.coord_err['b'] = 0.*self.coord.l.decompose(galactic)
+        self.coord_err['distance'] = dist_errs.decompose(galactic)
 
         # a SphericalRepresentation of the coordinates in Ophiuchus coordinates
         # self.coord_oph = orbitfit.rotate_sph_coordinate(self.coord, self.R)
         self.coord_oph = self.coord.transform_to(Ophiuchus)
 
         # velocity information and uncertainties
-        self.veloc = OrderedDict(
-            mul=(_tbl['mu_l']*u.mas/u.yr).decompose(galactic),
-            mub=(_tbl['mu_b']*u.mas/u.yr).decompose(galactic),
-            vr=(_tbl['v_los']*u.km/u.s).decompose(galactic)
-        )
-        self.veloc_err = OrderedDict(
-            mul=(_tbl['err_mu_l']*u.mas/u.yr).decompose(galactic),
-            mub=(_tbl['err_mu_b']*u.mas/u.yr).decompose(galactic),
-            vr=(_tbl['err_v_los']*u.km/u.s).decompose(galactic)
-        )
+        self.veloc = OrderedDict()
+        self.veloc['mul'] = (_tbl['mu_l']*u.mas/u.yr).decompose(galactic)
+        self.veloc['mub'] = (_tbl['mu_b']*u.mas/u.yr).decompose(galactic)
+        self.veloc['vr'] = (_tbl['v_los']*u.km/u.s).decompose(galactic)
+
+        self.veloc_err = OrderedDict()
+        self.veloc_err['mul'] = (_tbl['err_mu_l']*u.mas/u.yr).decompose(galactic)
+        self.veloc_err['mub'] = (_tbl['err_mu_b']*u.mas/u.yr).decompose(galactic)
+        self.veloc_err['vr'] = (_tbl['err_v_los']*u.km/u.s).decompose(galactic)
 
     def oph_to_galactic(self, rep):
         """
