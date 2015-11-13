@@ -185,7 +185,7 @@ def main(top_output_path, potential_file, data_file, sign, dt,
     integration_time = 6. # Myr
 
     # first minimize
-    p0 = tuple(x0) + (sign*integration_time,)
+    p0 = list(x0) + [sign*integration_time]
     args = (data_coord,
             [d for d in data[3:]],
             [e for e in errs],
