@@ -80,10 +80,10 @@ class OphiuchusData(object):
 
     def _mcmc_sample_to_coord(self, p):
         p = atleast_2d(p, insert_axis=-1) # note: from Gary, not Numpy
-        rep = coord.SphericalRepresentation(lon=p[0]*0.*u.radian, # this is required by the MCMC
-                                            lat=p[0]*u.radian, # this index looks weird but is right
-                                            distance=p[1]*u.kpc)
-        return self.oph_to_galactic(rep)
+        oph = Ophiuchus(phi1=p[0]*0.*u.radian, # this is required by the MCMC
+                        phi2=p[0]*u.radian, # this index looks weird but is right
+                        distance=p[1]*u.kpc)
+        return oph.transform_to(coord.Galactic)
 
     def _mcmc_sample_to_w0(self, p):
         p = atleast_2d(p, insert_axis=-1) # note: from Gary, not Numpy
