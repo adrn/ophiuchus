@@ -16,15 +16,20 @@ import gary.coordinates as gc
 from . import galactocentric_frame, vcirc, vlsr
 from .coordinates import Ophiuchus
 
-def plot_data_orbit(ophdata, orbit_w,
-                    phi1_lims=[-10.,10.]*u.deg, phi2_lims=[-10.,10.]*u.deg, distance_lims=[5.5,10]*u.kpc,
-                    mul_lims=[-12,0]*u.mas/u.yr, mub_lims=[-4,12]*u.mas/u.yr, vlos_lims=[230,330]*u.km/u.s,
-                    fig=None):
+__all__ = ['plot_data', 'plot_orbit']
+
+def plot_data(ophdata,
+              phi1_lims=[-10.,10.]*u.deg, phi2_lims=[-10.,10.]*u.deg, distance_lims=[5.5,10]*u.kpc,
+              mul_lims=[-12,0]*u.mas/u.yr, mub_lims=[-4,12]*u.mas/u.yr, vr_lims=[230,330]*u.km/u.s,
+              fig=None):
     """
     TODO!
     """
 
-    fig,_axes = pl.subplots(2,3,figsize=(12,10),sharex=True)
+    if fig is None:
+        fig,_axes = pl.subplots(2,3,figsize=(12,10),sharex=True)
+    else:
+        _axes = fig.axes
     axes = _axes.flat
     axes[-1].set_visible(False)
 
@@ -43,6 +48,38 @@ def plot_data_orbit(ophdata, orbit_w,
         axes[i+2].errorbar(x, ophdata.veloc[k].to(lims.unit).value,
                            ophdata.veloc_err[k].to(lims.unit).value, **style)
         axes[i+2].set_ylim(*lims.value)
+
+    # bottom axis label
+    axes[2].set_xlabel(r'$\phi_1$ [deg]')
+    axes[3].set_xlabel(r'$\phi_1$ [deg]')
+    axes[4].set_xlabel(r'$\phi_1$ [deg]')
+
+    # vertical axis labels
+    axes[0].set_ylabel(r'$\phi_2$ [deg]')
+    axes[1].set_ylabel(r'$d$ [kpc]')
+    axes[2].set_ylabel(r'$\mu_l$ [mas yr$^{-1}$]')
+    axes[3].set_ylabel(r'$\mu_b$ [mas yr$^{-1}$]')
+    axes[4].set_ylabel(r'$v_{\rm los}$ [km s$^{-1}$]')
+
+    # set all phi1 lims
+    axes[0].set_xlim(*phi1_lims.value)
+
+    return fig
+
+def plot_orbit(orbit_w, ophdata,
+               phi1_lims=[-10.,10.]*u.deg, phi2_lims=[-10.,10.]*u.deg, distance_lims=[5.5,10]*u.kpc,
+               mul_lims=[-12,0]*u.mas/u.yr, mub_lims=[-4,12]*u.mas/u.yr, vr_lims=[230,330]*u.km/u.s,
+               fig=None):
+    """
+    TODO!
+    """
+
+    if fig is None:
+        fig,_axes = pl.subplots(2,3,figsize=(12,10),sharex=True)
+    else:
+        _axes = fig.axes
+    axes = _axes.flat
+    axes[-1].set_visible(False)
 
     # plot the orbit
     style = dict(marker=None, ls='-')
@@ -74,6 +111,6 @@ def plot_data_orbit(ophdata, orbit_w,
     axes[4].set_ylabel(r'$v_{\rm los}$ [km s$^{-1}$]')
 
     # set all phi1 lims
-    axes[0].set_xlim(phi1_lims)
+    axes[0].set_xlim(*phi1_lims.value)
 
     return fig
