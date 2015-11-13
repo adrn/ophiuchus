@@ -5,7 +5,6 @@ from __future__ import division, print_function
 __author__ = "adrn <adrn@astro.columbia.edu>"
 
 # Third-party
-from astropy import log as logger
 import astropy.coordinates as coord
 import astropy.units as u
 from astropy.utils.data import get_pkg_data_filename
@@ -13,13 +12,13 @@ import numpy as np
 import numexpr
 
 import gary.coordinates as gc
-from gary.dynamics import orbitfit
 from gary.observation import distance
 from gary.units import galactic
 from gary.util import atleast_2d
 
 # Project
 from .. import galactocentric_frame, vcirc, vlsr
+from ..coordinates import Ophiuchus
 
 __all__ = ['OphiuchusData']
 
@@ -54,12 +53,9 @@ class OphiuchusData(object):
             distance=dist_errs.decompose(galactic)
         )
 
-        # compute the rotation matrix to go from Galacic to Stream coordinates by assuming
-        #   the star with maximum stream longitude is the pivot
-        self.R = orbitfit.compute_stream_rotation_matrix(self.coord, align_lon='max')
-
         # a SphericalRepresentation of the coordinates in Ophiuchus coordinates
-        self.coord_oph = orbitfit.rotate_sph_coordinate(self.coord, self.R)
+        # self.coord_oph = orbitfit.rotate_sph_coordinate(self.coord, self.R)
+        self.coord_oph = self.coord.transform_to(Ophiuchus)
 
         # velocity information and uncertainties
         self.veloc = dict(
