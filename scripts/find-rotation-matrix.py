@@ -46,7 +46,7 @@ def main(plot=False):
 
     print("Rotation matrix:")
     for i in range(3):
-        print("{:>10.5f} {:>10.5f} {:>10.5f}".format(*R[i]))
+        print("{:>20.12f} {:>20.12f} {:>20.12f}".format(*R[i]))
 
     all_rot_rep = orbitfit.rotate_sph_coordinate(all_data.coord, R)
     if plot:
