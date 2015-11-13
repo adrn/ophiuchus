@@ -192,11 +192,12 @@ def ln_likelihood(p, ophdata, potential, dt, freeze=None):
 
     # define interpolating functions
     order = 3
-    phi2_interp = InterpolatedUnivariateSpline(model_x[ix], model_phi2[ix], k=order, bbox=[-1,1])
-    d_interp = InterpolatedUnivariateSpline(model_x[ix], model_d[ix], k=order, bbox=[-1,1])
-    mul_interp = InterpolatedUnivariateSpline(model_x[ix], model_mul[ix], k=order, bbox=[-1,1])
-    mub_interp = InterpolatedUnivariateSpline(model_x[ix], model_mub[ix], k=order, bbox=[-1,1])
-    vr_interp = InterpolatedUnivariateSpline(model_x[ix], model_vr[ix], k=order, bbox=[-1,1])
+    bbox = [-np.pi, np.pi]
+    phi2_interp = InterpolatedUnivariateSpline(model_x[ix], model_phi2[ix], k=order, bbox=bbox) # change bbox to units of model_x
+    d_interp = InterpolatedUnivariateSpline(model_x[ix], model_d[ix], k=order, bbox=bbox)
+    mul_interp = InterpolatedUnivariateSpline(model_x[ix], model_mul[ix], k=order, bbox=bbox)
+    mub_interp = InterpolatedUnivariateSpline(model_x[ix], model_mub[ix], k=order, bbox=bbox)
+    vr_interp = InterpolatedUnivariateSpline(model_x[ix], model_vr[ix], k=order, bbox=bbox)
 
     chi2 += -(phi2_interp(data_x) - c.phi2.radian)**2 / phi2_sigma**2 - 2*np.log(phi2_sigma)
 
