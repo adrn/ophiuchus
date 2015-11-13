@@ -70,14 +70,6 @@ class OphiuchusData(object):
         self.veloc_err['mub'] = (_tbl['err_mu_b']*u.mas/u.yr).decompose(galactic)
         self.veloc_err['vr'] = (_tbl['err_v_los']*u.km/u.s).decompose(galactic)
 
-    def oph_to_galactic(self, rep):
-        """
-        Transform from Ophiuchus stream coordinates to Galactic coordinates.
-        """
-        xyz = rep.represent_as(coord.CartesianRepresentation).xyz.value
-        in_frame_car = coord.CartesianRepresentation(self.R.T.dot(xyz).T*u.kpc)
-        return self.coord.realize_frame(in_frame_car)
-
     def _mcmc_sample_to_coord(self, p):
         p = atleast_2d(p, insert_axis=-1) # note: from Gary, not Numpy
         oph = Ophiuchus(phi1=p[0]*0.*u.radian, # this is required by the MCMC
