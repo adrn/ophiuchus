@@ -32,41 +32,41 @@ __all__ = ['ln_prior', 'ln_likelihood', 'ln_posterior']
 
 def _unpack(p, freeze=None):
     if freeze is None:
-        freeze = defaultdict(lambda:None)
+        freeze = dict()
 
     # these are for the initial conditions
     phi2,d,mul,mub,vr = p[:5]
     count_ix = 5
 
     # time to integrate forward and backward
-    if freeze['t_forw'] is None:
+    if 't_forw' not in freeze:
         t_forw = p[count_ix]
         count_ix += 1
     else:
         t_forw = freeze['t_forw']
 
-    if freeze['t_back'] is None:
+    if 't_back' not in freeze:
         t_back = p[count_ix]
         count_ix += 1
     else:
         t_back = freeze['t_back']
 
     # prior on instrinsic width of stream
-    if freeze['phi2_sigma'] is None:
+    if 'phi2_sigma' not in freeze:
         phi2_sigma = p[count_ix]
         count_ix += 1
     else:
         phi2_sigma = freeze['phi2_sigma']
 
     # prior on instrinsic depth (distance) of stream
-    if freeze['d_sigma'] is None:
+    if 'd_sigma' not in freeze:
         d_sigma = p[count_ix]
         count_ix += 1
     else:
         d_sigma = freeze['d_sigma']
 
     # prior on instrinsic LOS velocity dispersion of stream
-    if freeze['vr_sigma'] is None:
+    if 'vr_sigma' not in freeze:
         vr_sigma = p[count_ix]
         count_ix += 1
     else:
@@ -81,8 +81,6 @@ def ln_prior(p, ophdata, potential, dt, freeze=None):
     See docstring for `ln_likelihood()` for information on args and kwargs.
 
     """
-    if freeze is None:
-        freeze = defaultdict(lambda:None)
 
     # log prior value
     lp = 0.
@@ -171,7 +169,7 @@ def ln_likelihood(p, ophdata, potential, dt, freeze=None):
     model_oph = model_c.transform_to(Ophiuchus)
 
     # model stream points in ophiuchus coordinates
-    model_phi1 = model_oph.phi1.wrap_at(180*u.deg)
+    model_phi1 = model_oph.phi1
     model_phi2 = model_oph.phi2.radian
     model_d = model_oph.distance.decompose(galactic).value
     _tmp = vgal_to_hel(model_c, w[:,3:].T*u.kpc/u.Myr,
@@ -180,10 +178,10 @@ def ln_likelihood(p, ophdata, potential, dt, freeze=None):
     model_mul,model_mub,model_vr = [x.decompose(galactic).value for x in _tmp]
 
     # rotate the data to stream coordinates
-    # data_x = np.cos(ophdata.coord_oph.phi1)
-    # model_x = np.cos(model_phi1)
-    data_x = ophdata.coord_oph.phi1.wrap_at(180*u.deg).radian
-    model_x = model_phi1.radian
+    data_x = np.cos(ophdata.coord_oph.phi1)
+    model_x = np.cos(model_phi1)
+    # data_x = ophdata.coord_oph.phi1.wrap_at(180*u.deg).radian
+    # model_x = model_phi1.wrap_at(180*u.deg).radian
     ix = np.argsort(model_x)
 
     # shortening for readability
@@ -192,7 +190,8 @@ def ln_likelihood(p, ophdata, potential, dt, freeze=None):
 
     # define interpolating functions
     order = 3
-    bbox = [-np.pi, np.pi]
+    # bbox = [-np.pi, np.pi]
+    bbox = [-1, 1]
     phi2_interp = InterpolatedUnivariateSpline(model_x[ix], model_phi2[ix], k=order, bbox=bbox) # change bbox to units of model_x
     d_interp = InterpolatedUnivariateSpline(model_x[ix], model_d[ix], k=order, bbox=bbox)
     mul_interp = InterpolatedUnivariateSpline(model_x[ix], model_mul[ix], k=order, bbox=bbox)
@@ -214,8 +213,8 @@ def ln_likelihood(p, ophdata, potential, dt, freeze=None):
     chi2 += -(vr_interp(data_x) - v['vr'].decompose(galactic).value)**2 / (err**2 + vr_sigma**2) - np.log(err**2 + vr_sigma**2)
 
     # this is some kind of whack prior - don't integrate more than we have to
-    # chi2 += -(model_phi1.radian.min() - data_rot_sph.lon.radian.min())**2 / ((2*phi2_sigma)**2)
-    # chi2 += -(model_phi1.radian.max() - data_rot_sph.lon.radian.max())**2 / ((2*phi2_sigma)**2)
+    chi2 += -(model_phi1.radian.min() - ophdata.coord_oph.phi1.radian.min())**2 / ((2*phi2_sigma)**2)
+    chi2 += -(model_phi1.radian.max() - ophdata.coord_oph.phi1.radian.max())**2 / ((2*phi2_sigma)**2)
 
     return 0.5*chi2
 
