@@ -10,6 +10,7 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 import astropy.units as u
 import astropy.coordinates as coord
 import matplotlib.pyplot as pl
+import numpy as np
 import gary.coordinates as gc
 
 # Project
@@ -30,7 +31,7 @@ def plot_data(ophdata,
         fig,_axes = pl.subplots(2,3,figsize=(12,8),sharex=True)
     else:
         _axes = fig.axes
-    axes = _axes.flat
+    axes = np.ravel(_axes)
     axes[-1].set_visible(True) # HACK because matplotlib bbox issues with invisible plots
 
     # plot the data points
@@ -80,7 +81,7 @@ def plot_orbit(orbit_w, ophdata,
         fig,_axes = pl.subplots(2,3,figsize=(12,8),sharex=True)
     else:
         _axes = fig.axes
-    axes = _axes.flat
+    axes = np.ravel(_axes)
     axes[-1].set_visible(True) # HACK because matplotlib bbox issues with invisible plots
 
     # plot the orbit
