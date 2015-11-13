@@ -10,6 +10,7 @@ import astropy.coordinates as coord
 import astropy.units as u
 from astropy.utils.data import get_pkg_data_filename
 import numpy as np
+import numexpr
 
 import gary.coordinates as gc
 from gary.dynamics import orbitfit
@@ -20,14 +21,19 @@ from gary.util import atleast_2d
 # Project
 from .. import galactocentric_frame, vcirc, vlsr
 
+__all__ = ['OphiuchusData']
+
 class OphiuchusData(object):
     """
     Utility class for interacting with the data for the Ophiuchus stream.
     """
-    def __init__(self):
+    def __init__(self, expr=None):
         # read the catalog data file
         filename = get_pkg_data_filename('sesar.txt')
         _tbl = np.genfromtxt(filename, dtype=None, skip_header=2, names=True)
+        if expr is not None:
+            ix = numexpr.evaluate(expr, _tbl)
+            _tbl = _tbl[ix]
 
         # convert distance modulus uncertainty to distance uncertainty
         dists = []
