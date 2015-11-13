@@ -1,0 +1,4 @@
+# This was solved for using scripts/find-rotation-matrix.py
+0.84922    0.07001    0.52338
+-0.27044   -0.79364    0.54497
+0.45353   -0.60434   -0.65504
