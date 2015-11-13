@@ -20,22 +20,22 @@ __all__ = ['plot_data', 'plot_orbit']
 
 def plot_data(ophdata,
               phi1_lims=[-10.,10.]*u.deg, phi2_lims=[-10.,10.]*u.deg, distance_lims=[5.5,10]*u.kpc,
-              mul_lims=[-12,0]*u.mas/u.yr, mub_lims=[-4,12]*u.mas/u.yr, vr_lims=[230,330]*u.km/u.s,
+              mul_lims=[-12,0]*u.mas/u.yr, mub_lims=[-4,12]*u.mas/u.yr, vr_lims=[215,335]*u.km/u.s,
               fig=None):
     """
     TODO!
     """
 
     if fig is None:
-        fig,_axes = pl.subplots(2,3,figsize=(12,10),sharex=True)
+        fig,_axes = pl.subplots(2,3,figsize=(12,8),sharex=True)
     else:
         _axes = fig.axes
     axes = _axes.flat
-    axes[-1].set_visible(False)
+    axes[-1].set_visible(True) # HACK because matplotlib bbox issues with invisible plots
 
     # plot the data points
-    style = dict(marker='o', ls='none', ecolor='#666666')
-    x = ophdata.coord_oph.phi1.to(phi1_lims.unit).value
+    style = dict(marker='o', ls='none', ecolor='#666666', ms=3.)
+    x = ophdata.coord_oph.phi1.wrap_at(180*u.deg).to(phi1_lims.unit).value
     axes[0].errorbar(x, ophdata.coord_oph.phi2.to(phi2_lims.unit).value, 1E-10*x, **style)
     axes[0].set_ylim(*phi2_lims.value)
 
@@ -63,23 +63,25 @@ def plot_data(ophdata,
 
     # set all phi1 lims
     axes[0].set_xlim(*phi1_lims.value)
+    fig.tight_layout()
+    axes[-1].set_visible(False) # HACK because matplotlib bbox issues with invisible plots
 
     return fig
 
 def plot_orbit(orbit_w, ophdata,
                phi1_lims=[-10.,10.]*u.deg, phi2_lims=[-10.,10.]*u.deg, distance_lims=[5.5,10]*u.kpc,
-               mul_lims=[-12,0]*u.mas/u.yr, mub_lims=[-4,12]*u.mas/u.yr, vr_lims=[230,330]*u.km/u.s,
+               mul_lims=[-12,0]*u.mas/u.yr, mub_lims=[-4,12]*u.mas/u.yr, vr_lims=[215,335]*u.km/u.s,
                fig=None):
     """
     TODO!
     """
 
     if fig is None:
-        fig,_axes = pl.subplots(2,3,figsize=(12,10),sharex=True)
+        fig,_axes = pl.subplots(2,3,figsize=(12,8),sharex=True)
     else:
         _axes = fig.axes
     axes = _axes.flat
-    axes[-1].set_visible(False)
+    axes[-1].set_visible(True) # HACK because matplotlib bbox issues with invisible plots
 
     # plot the orbit
     style = dict(marker=None, ls='-')
@@ -90,7 +92,7 @@ def plot_orbit(orbit_w, ophdata,
                            galactocentric_frame=galactocentric_frame,
                            vcirc=vcirc, vlsr=vlsr)
 
-    x = w_oph.phi1.to(phi1_lims.unit).value
+    x = w_oph.phi1.wrap_at(180*u.deg).to(phi1_lims.unit).value
     axes[0].plot(x, w_oph.phi2.to(phi2_lims.unit).value, **style)
     axes[1].plot(x, w_coord.distance.to(distance_lims.unit).value, **style)
 
@@ -112,5 +114,7 @@ def plot_orbit(orbit_w, ophdata,
 
     # set all phi1 lims
     axes[0].set_xlim(*phi1_lims.value)
+    fig.tight_layout()
+    axes[-1].set_visible(False) # HACK because matplotlib bbox issues with invisible plots
 
     return fig
