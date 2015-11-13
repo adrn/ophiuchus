@@ -1,6 +1,6 @@
 # coding: utf-8
 
-""" Astropy coordinate class for the Sagittarius coordinate system """
+""" Astropy coordinate class for the Ophiuchus coordinate system """
 
 from __future__ import division, print_function
 
@@ -10,13 +10,13 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 import numpy as np
 
 from astropy.coordinates import frame_transform_graph
-from astropy.coordinates.angles import rotation_matrix
+from astropy.utils.data import get_pkg_data_filename
 import astropy.coordinates as coord
 import astropy.units as u
 
-__all__ = ["Orphan"]
+__all__ = ["Ophiuchus"]
 
-class Orphan(coord.BaseCoordinateFrame):
+class Ophiuchus(coord.BaseCoordinateFrame):
     """
     A Heliocentric spherical coordinate system defined by the orbit
     of the Ophiuchus stream.
@@ -46,14 +46,11 @@ class Orphan(coord.BaseCoordinateFrame):
                           coord.RepresentationMapping('lat', 'phi2')]
     }
 
-# Generate the rotation matrix using the x-convention (see Goldstein)
-D = rotation_matrix(phi, "z", unit=u.radian)
-C = rotation_matrix(theta, "x", unit=u.radian)
-B = rotation_matrix(psi, "z", unit=u.radian)
-sgr_matrix = np.array(B.dot(C).dot(D))
+# read the rotation matrix (previously generated)
+R = np.loadtxt(get_pkg_data_filename('rotationmatrix.txt'))
 
-# Galactic to Sgr coordinates
-@frame_transform_graph.transform(coord.FunctionTransform, coord.Galactic, Orphan)
+# Galactic to Ophiuchus coordinates
+@frame_transform_graph.transform(coord.FunctionTransform, coord.Galactic, Ophiuchus)
 def galactic_to_orp(gal_coord, sgr_frame):
     """ Compute the transformation from Galactic spherical to
         heliocentric Sgr coordinates.
