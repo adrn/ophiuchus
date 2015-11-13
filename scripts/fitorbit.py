@@ -218,7 +218,7 @@ def main(top_output_path, potential_file, data_file, sign, dt,
             # logger.info("Minimized params: {}".format(X_minimize))
 
             # TESTING
-            X_minimize = [-2.30396525e-03, 8.75970429e+00, -2.72026927e-02, 1.01370688e-02, 2.92748461e-01, -7.9]
+            X_minimize = [-2.84564718e-03, 8.83177846e+00, -3.38193396e-02, 2.84375111e-03, 2.91714087e-01, -6.50033803e+00]
 
             # use output from minimize to initialize MCMC
             _p0 = X_minimize[:-1]
