@@ -51,9 +51,9 @@ R = np.loadtxt(get_pkg_data_filename('rotationmatrix.txt'))
 
 # Galactic to Ophiuchus coordinates
 @frame_transform_graph.transform(coord.FunctionTransform, coord.Galactic, Ophiuchus)
-def galactic_to_orp(gal_coord, sgr_frame):
+def galactic_to_oph(gal_coord, oph_frame):
     """ Compute the transformation from Galactic spherical to
-        heliocentric Sgr coordinates.
+        heliocentric Oph coordinates.
     """
 
     l = np.atleast_1d(gal_coord.l.radian)
@@ -63,36 +63,36 @@ def galactic_to_orp(gal_coord, sgr_frame):
     Y = np.cos(b)*np.sin(l)
     Z = np.sin(b)
 
-    # Calculate X,Y,Z,distance in the Sgr system
-    Xs, Ys, Zs = sgr_matrix.dot(np.array([X, Y, Z]))
+    # Calculate X,Y,Z,distance in the Oph system
+    Xs, Ys, Zs = R.dot(np.array([X, Y, Z]))
 
     # Calculate the angular coordinates lambda,beta
     Lambda = np.arctan2(Ys, Xs)*u.radian
     Lambda[Lambda < 0] = Lambda[Lambda < 0] + 2.*np.pi*u.radian
     Beta = np.arcsin(Zs/np.sqrt(Xs*Xs+Ys*Ys+Zs*Zs))*u.radian
 
-    return Orphan(Lambda=Lambda, Beta=Beta,
-                  distance=gal_coord.distance)
+    return Ophiuchus(phi1=Lambda, phi2=Beta,
+                     distance=gal_coord.distance)
 
 
-# Sgr to Galactic coordinates
-@frame_transform_graph.transform(coord.FunctionTransform, Orphan, coord.Galactic)
-def orp_to_galactic(orp_coord, gal_frame):
-    """ Compute the transformation from heliocentric Sgr coordinates to
+# Oph to Galactic coordinates
+@frame_transform_graph.transform(coord.FunctionTransform, Ophiuchus, coord.Galactic)
+def oph_to_galactic(oph_coord, gal_frame):
+    """ Compute the transformation from heliocentric Oph coordinates to
         spherical Galactic.
     """
-    L = np.atleast_1d(orp_coord.Lambda.radian)
-    B = np.atleast_1d(orp_coord.Beta.radian)
+    L = np.atleast_1d(oph_coord.Lambda.radian)
+    B = np.atleast_1d(oph_coord.Beta.radian)
 
     Xs = np.cos(B)*np.cos(L)
     Ys = np.cos(B)*np.sin(L)
     Zs = np.sin(B)
 
-    X, Y, Z = sgr_matrix.T.dot(np.array([Xs, Ys, Zs]))
+    X, Y, Z = R.T.dot(np.array([Xs, Ys, Zs]))
 
     l = np.arctan2(Y, X)*u.radian
     b = np.arcsin(Z/np.sqrt(X*X+Y*Y+Z*Z))*u.radian
 
     l[l<0] += 2*np.pi*u.radian
 
-    return coord.Galactic(l=l, b=b, distance=orp_coord.distance)
+    return coord.Galactic(l=l, b=b, distance=oph_coord.distance)
