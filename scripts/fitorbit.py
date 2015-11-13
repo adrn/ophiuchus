@@ -185,7 +185,7 @@ def main(top_output_path, potential_file, data_file, sign, dt,
     integration_time = 6. # Myr
 
     # first minimize
-    p0 = tuple(x0) + (sign*integration_time,)
+    p0 = list(x0) + [sign*integration_time]
     args = (data_coord,
             [d for d in data[3:]],
             [e for e in errs],
@@ -218,7 +218,7 @@ def main(top_output_path, potential_file, data_file, sign, dt,
             # logger.info("Minimized params: {}".format(X_minimize))
 
             # TESTING
-            X_minimize = [-2.30396525e-03, 8.75970429e+00, -2.72026927e-02, 1.01370688e-02, 2.92748461e-01, -15.]
+            X_minimize = [-2.30396525e-03, 8.75970429e+00, -2.72026927e-02, 1.01370688e-02, 2.92748461e-01, -7.9]
 
             # use output from minimize to initialize MCMC
             _p0 = X_minimize[:-1]
