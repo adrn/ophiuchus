@@ -8,10 +8,10 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 import astropy.units as u
 import astropy.coordinates as coord
 import numpy as np
-from gary.dynamics import orbitfit
 
 # Project
-from ..core import Ophiuchus, R
+from ..core import Ophiuchus
+from ...data import OphiuchusData
 
 def test_roundtrip_transform():
     n = 128
@@ -26,3 +26,8 @@ def test_roundtrip_transform():
     assert np.allclose(g2.distance.value, g.distance.value)
     assert np.allclose(g2.l.value, g.l.value, atol=1E-9)
     assert np.allclose(g2.b.value, g.b.value, atol=1E-9)
+
+def test_data_phi2_is_small():
+    d = OphiuchusData(expr="source == 'Sesar2015a'")
+    oph = d.coord.transform_to(Ophiuchus)
+    assert np.abs(oph.phi2.arcmin) < 5. # all phi2 should be <5 arcmin
