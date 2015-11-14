@@ -92,8 +92,14 @@ def plot_data_orbit(ophdata, orbit_w=None, stream_coords=False, lims=None, fig=N
                                galactocentric_frame=galactocentric_frame,
                                vcirc=vcirc, vlsr=vlsr)
 
-        x = w_oph.phi1.wrap_at(180*u.deg).to(xlim.unit).value
-        axes[0].plot(x, w_oph.phi2.to(ylim.unit).value, **style)
+        if stream_coords:
+            x = w_oph.phi1.wrap_at(180*u.deg).to(xlim.unit).value
+            y = w_oph.phi2.to(ylim.unit).value
+        else:
+            x = w_coord.l.to(xlim.unit).value
+            y = w_coord.b.to(ylim.unit).value
+
+        axes[0].plot(x, y, **style)
         axes[1].plot(x, w_coord.distance.to(lims['distance'].unit).value, **style)
 
         for i,k in enumerate(ophdata.veloc.keys()):
