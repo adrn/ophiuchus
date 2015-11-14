@@ -94,6 +94,9 @@ def ln_prior(p, ophdata, potential, dt, freeze=None):
         raise ValueError("Forward integration time less than or equal to "
                          "backwards integration time.")
 
+    if t_forw < dt or t_back > -dt:
+        return -np.inf
+
     # prior on instrinsic width of stream
     if freeze['phi2_sigma'] is None:
         if phi2_sigma <= 0.:
@@ -119,7 +122,7 @@ def ln_prior(p, ophdata, potential, dt, freeze=None):
 
     # uniform prior on integration time
     ntimes = int(t_integ / dt) + 1
-    if np.sign(dt)*t_integ <= 1. or np.sign(dt)*t_integ > 1000. or ntimes < 4:
+    if t_integ <= 2. or t_integ > 1000. or ntimes < 4:
         return -np.inf
 
     return lp
@@ -213,8 +216,8 @@ def ln_likelihood(p, ophdata, potential, dt, freeze=None):
     chi2 += -(vr_interp(data_x) - v['vr'].decompose(galactic).value)**2 / (err**2 + vr_sigma**2) - np.log(err**2 + vr_sigma**2)
 
     # this is some kind of whack prior - don't integrate more than we have to
-    chi2 += -(model_phi1.radian.min() - ophdata.coord_oph.phi1.radian.min())**2 / ((2*phi2_sigma)**2)
-    chi2 += -(model_phi1.radian.max() - ophdata.coord_oph.phi1.radian.max())**2 / ((2*phi2_sigma)**2)
+    chi2 += -(model_phi1.radian.min() - ophdata.coord_oph.phi1.radian.min())**2 / (phi2_sigma**2)
+    chi2 += -(model_phi1.radian.max() - ophdata.coord_oph.phi1.radian.max())**2 / (phi2_sigma**2)
 
     return 0.5*chi2
 
