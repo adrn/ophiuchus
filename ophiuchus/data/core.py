@@ -29,13 +29,20 @@ class OphiuchusData(object):
     """
     Utility class for interacting with the data for the Ophiuchus stream.
     """
-    def __init__(self, expr=None):
+    def __init__(self, expr=None, index=None):
         # read the catalog data file
         filename = get_pkg_data_filename('sesar.txt')
         _tbl = np.genfromtxt(filename, dtype=None, skip_header=2, names=True)
-        if expr is not None:
+
+        if expr is not None and index is not None:
+            raise ValueError("Can't specify expr and index selection.")
+
+        elif expr is not None:
             ix = numexpr.evaluate(expr, _tbl)
             _tbl = _tbl[ix]
+
+        elif index is not None:
+            _tbl = _tbl[index]
 
         # convert distance modulus uncertainty to distance uncertainty
         dists = []
