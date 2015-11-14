@@ -58,11 +58,15 @@ def plot_data_orbit(ophdata, orbit_w=None, stream_coords=False, lims=None, fig=N
         y = ophdata.coord_oph.phi2.to(lims['phi2'].unit).value
         xlim = lims['phi1']
         ylim = lims['phi2']
+        xlabel = r'$\phi_1$ [deg]'
+        yylabel = r'$\phi_2$ [deg]'
     else:
         x = ophdata.coord.l.to(lims['l'].unit).value
         y = ophdata.coord.b.to(lims['b'].unit).value
         xlim = lims['l']
         ylim = lims['b']
+        xlabel = r'$l$ [deg]'
+        yylabel = r'$b$ [deg]'
 
     # latitude coordinates
     axes[0].errorbar(x, y, 1E-10*x, **style)
@@ -97,12 +101,12 @@ def plot_data_orbit(ophdata, orbit_w=None, stream_coords=False, lims=None, fig=N
             axes[i+2].plot(x, w_vel[i].to(this_lims.unit).value, **style)
 
     # bottom axis label
-    axes[2].set_xlabel(r'$\phi_1$ [deg]')
-    axes[3].set_xlabel(r'$\phi_1$ [deg]')
-    axes[4].set_xlabel(r'$\phi_1$ [deg]')
+    axes[2].set_xlabel(xlabel)
+    axes[3].set_xlabel(xlabel)
+    axes[4].set_xlabel(xlabel)
 
     # vertical axis labels
-    axes[0].set_ylabel(r'$\phi_2$ [deg]')
+    axes[0].set_ylabel(yylabel)
     axes[1].set_ylabel(r'$d$ [kpc]')
     axes[2].set_ylabel(r'$\mu_l$ [mas yr$^{-1}$]')
     axes[3].set_ylabel(r'$\mu_b$ [mas yr$^{-1}$]')
