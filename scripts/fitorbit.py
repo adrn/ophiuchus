@@ -30,7 +30,8 @@ from ophiuchus.plot import plot_data_orbit
 import ophiuchus.potential as op
 
 def main(top_output_path, potential_file, dt,
-         nsteps, nwalkers=None, mpi=False, overwrite=False, seed=42, continue_mcmc=False):
+         nsteps, nwalkers=None, mpi=False, overwrite=False, seed=42, continue_mcmc=False,
+         fix_integration_time=False):
     np.random.seed(seed)
     pool = get_pool(mpi=mpi)
 
@@ -70,12 +71,18 @@ def main(top_output_path, potential_file, dt,
                   [np.median(fit_ophdata.coord_oph.distance.decompose(galactic).value)] + \
                   [-3.56738886e-02] + \
                   [3.83403870e-03] + \
-                  [np.median(fit_ophdata.veloc['vr']).decompose(galactic).value] + \
-                  [3., -3.] # t_forw, t_back
+                  [np.median(fit_ophdata.veloc['vr']).decompose(galactic).value]
 
     freeze = dict(phi2_sigma=np.radians(0.1),
                   d_sigma=0.025,
                   vr_sigma=0.002)
+
+    if not fix_integration_time:
+        minimize_p0 += [3., -3.] # t_forw, t_back
+    else:
+        freeze['t_forw'] = 3.
+        freeze['t_back'] = -3.
+
     args = (fit_ophdata, potential, dt, freeze)
 
     if continue_mcmc and not os.path.exists(sampler_filename):
@@ -120,8 +127,10 @@ def main(top_output_path, potential_file, dt,
             p0[:,2] = N(_p0[2], np.median(fit_ophdata.veloc_err['mul'].value)/1000., size=nwalkers)
             p0[:,3] = N(_p0[3], np.median(fit_ophdata.veloc_err['mub'].value)/1000., size=nwalkers)
             p0[:,4] = N(_p0[4], np.median(fit_ophdata.veloc_err['vr'].value)/100., size=nwalkers)
-            p0[:,5] = N(_p0[5], 0.01, size=nwalkers)
-            p0[:,6] = N(_p0[6], 0.01, size=nwalkers)
+
+            if not fix_integration_time:
+                p0[:,5] = N(_p0[5], 0.01, size=nwalkers)
+                p0[:,6] = N(_p0[6], 0.01, size=nwalkers)
 
         # get the integration time from minimization or cached on sampler object
         sampler = emcee.EnsembleSampler(nwalkers=nwalkers, dim=ndim,
@@ -164,7 +173,11 @@ def main(top_output_path, potential_file, dt,
     fig = plot_data_orbit(all_ophdata)
     for sample in sampler.flatchain[ix]:
         sample_w0 = fit_ophdata._mcmc_sample_to_w0(sample[:5])[:,0]
-        w = integrate_forward_backward(potential, sample_w0, t_forw=sample[5], t_back=sample[6])
+        if fix_integration_time:
+            tf,tb = (3.,-3.)
+        else:
+            tf,tb = (sample[5], sample[6])
+        w = integrate_forward_backward(potential, sample_w0, t_forw=tf, t_back=tb)
         fig = plot_data_orbit(all_ophdata, orbit_w=w, data_style=dict(marker=None),
                               orbit_style=dict(color='#2166AC', alpha=0.1), fig=fig)
     fig.savefig(os.path.join(output_path, "orbits.png"), dpi=300)
@@ -190,6 +203,8 @@ if __name__ == "__main__":
                         help="Integration timestep.")
 
     # emcee
+    parser.add_argument("--fixtime", dest="fixtime", default=False,
+                        action="store_true", help="Don't sample over forward/backward integration times.")
     parser.add_argument("--mpi", dest="mpi", default=False, action="store_true",
                         help="Run with MPI.")
     parser.add_argument("--nwalkers", dest="nwalkers", type=int, default=None,
@@ -211,6 +226,7 @@ if __name__ == "__main__":
     main(args.output_path, args.potential_file,
          dt=args.dt, nsteps=args.nsteps,
          nwalkers=args.nwalkers, mpi=args.mpi, overwrite=args.overwrite,
-         continue_mcmc=args.continue_mcmc)
+         continue_mcmc=args.continue_mcmc,
+         fix_integration_time=args.fixtime)
 
     sys.exit(0)
