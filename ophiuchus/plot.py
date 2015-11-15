@@ -102,7 +102,7 @@ def plot_data_orbit(ophdata, orbit_w=None, use_stream_coords=False, lims=None,
     if orbit_w is not None:
         # plot the orbit
         if orbit_style is None:
-            orbit_style = default_data_style
+            orbit_style = default_orbit_style
         else:
             orbit_style = orbit_style.copy() # so we don't mess with mutable objects
         for k,v in default_orbit_style.items():
