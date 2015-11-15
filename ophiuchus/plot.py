@@ -39,7 +39,7 @@ default_orbit_style = {
     'marker': None,
     'linestyle': '-',
 }
-def plot_data_orbit(ophdata, orbit_w=None, stream_coords=False, lims=None,
+def plot_data_orbit(ophdata, orbit_w=None, use_stream_coords=False, lims=None,
                     fig=None, data_style=None, orbit_style=None):
     """
     TODO!
@@ -70,7 +70,7 @@ def plot_data_orbit(ophdata, orbit_w=None, stream_coords=False, lims=None,
         if k not in data_style:
             data_style[k] = v
 
-    if stream_coords:
+    if use_stream_coords:
         x = ophdata.coord_oph.phi1.wrap_at(180*u.deg).to(lims['phi1'].unit).value
         y = ophdata.coord_oph.phi2.to(lims['phi2'].unit).value
         xlim = lims['phi1']
@@ -116,7 +116,7 @@ def plot_data_orbit(ophdata, orbit_w=None, stream_coords=False, lims=None,
                                galactocentric_frame=galactocentric_frame,
                                vcirc=vcirc, vlsr=vlsr)
 
-        if stream_coords:
+        if use_stream_coords:
             x = w_oph.phi1.wrap_at(180*u.deg).to(xlim.unit).value
             y = w_oph.phi2.to(ylim.unit).value
         else:
