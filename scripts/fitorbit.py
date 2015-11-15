@@ -14,112 +14,25 @@ import time
 
 # Third-party
 from astropy import log as logger
-import astropy.coordinates as coord
-import astropy.units as u
 import matplotlib.pyplot as pl
 import numpy as np
 import scipy.optimize as so
 import emcee
-
-# Custom
-import gary.integrate as gi
-import gary.coordinates as gc
 import gary.potential as gp
 from gary.units import galactic
-from gary.dynamics import orbitfit
-from gary.observation import distance
 from gary.util import get_pool
 
-from ophiuchus import galactocentric_frame, vcirc, vlsr
+# This project
+from ophiuchus import orbitfit
+from ophiuchus.util import integrate_forward_backward
+from ophiuchus.data import OphiuchusData
+from ophiuchus.plot import plot_data_orbit
 import ophiuchus.potential as op
 
-lon_lims = (-0.2, 6.2) # deg
-dist_lims = (5.5, 10.) # kpc
-vlos_lims = (230, 325.) # km/s
-def plot_data_orbit(data, errs, data_coord, data_rot, w0_obs, potential, R, integration_time=-15.):
-    # the fit initial conditions in rotated stream coordinates
-    phi2_0 = w0_obs[0]*u.radian
-    dist_0 = w0_obs[1]*u.kpc
-    mul_0 = w0_obs[2]*u.rad/u.Myr
-    mub_0 = w0_obs[3]*u.rad/u.Myr
-    vr_0 = w0_obs[4]*u.kpc/u.Myr
-
-    # convert position from stream coordinates to data coordinate frame
-    sph = coord.SphericalRepresentation(lon=0.*u.radian, lat=phi2_0, distance=dist_0)
-    xyz = sph.represent_as(coord.CartesianRepresentation).xyz.value
-    in_frame_car = coord.CartesianRepresentation(R.T.dot(xyz).T*u.kpc)
-    initial_coord = data_coord.realize_frame(in_frame_car)
-
-    # now convert to galactocentric coordinates
-    x0 = initial_coord.transform_to(galactocentric_frame).cartesian.xyz.decompose(galactic).value
-    v0 = gc.vhel_to_gal(initial_coord, pm=(mul_0,mub_0), rv=vr_0,
-                        galactocentric_frame=galactocentric_frame,
-                        vcirc=vcirc, vlsr=vlsr).decompose(galactic).value
-    w0 = np.append(x0, v0)
-
-    t,w = potential.integrate_orbit(w0, dt=np.sign(integration_time)*0.1, t1=0., t2=integration_time, Integrator=gi.DOPRI853Integrator)
-    w = w[:,0]
-    w_coord = galactocentric_frame.realize_frame(coord.CartesianRepresentation(w[:,:3].T*u.kpc)).transform_to(data_coord)
-    w_rot_coord = orbitfit.rotate_sph_coordinate(w_coord, R)
-    w_vel = gc.vgal_to_hel(w_coord, w[:,3:].T*u.kpc/u.Myr,
-                           galactocentric_frame=galactocentric_frame, vcirc=vcirc, vlsr=vlsr)
-
-    fig,axes = pl.subplots(5,1,figsize=(4,15),sharex=True)
-
-    # data
-    x = data_rot.lon.degree
-#     x = np.cos(data_rot.lon)
-    axes[0].plot(x, data_rot.lat.degree, marker='o', ls='none')
-#     axes[0].plot(x, np.cos(data_rot.lat), marker='o', ls='none')
-    axes[1].errorbar(x, data[2].value, errs[2].value, marker='o', ls='none')
-    axes[2].errorbar(x, data[3].to(u.mas/u.yr).value, errs[3].to(u.mas/u.yr).value, marker='o', ls='none')
-    axes[3].errorbar(x, data[4].to(u.mas/u.yr).value, errs[4].to(u.mas/u.yr).value, marker='o', ls='none')
-    axes[4].errorbar(x, data[5].to(u.km/u.s).value, errs[5].to(u.km/u.s).value, marker='o', ls='none')
-
-    # orbit
-    x = w_rot_coord.lon.degree
-#     x = np.cos(w_rot_coord.lon)
-    axes[0].plot(x, w_rot_coord.lat.degree, marker=None)
-#     axes[0].plot(x, np.cos(w_rot_coord.lat), marker=None)
-    axes[1].plot(x, w_rot_coord.distance.decompose(galactic).value, marker=None)
-    axes[2].plot(x, w_vel[0].to(u.mas/u.yr).value, marker=None)
-    axes[3].plot(x, w_vel[1].to(u.mas/u.yr).value, marker=None)
-    axes[4].plot(x, w_vel[2].to(u.km/u.s).value, marker=None)
-
-#     axes[-1].set_xlabel(r'$\cos(\phi_1)$')
-    axes[-1].set_xlabel(r'$\phi_1$ [deg]')
-    axes[0].set_ylabel(r'$\phi_2$ [deg]')
-    axes[1].set_ylabel(r'$d$ [kpc]')
-    axes[2].set_ylabel(r'$\mu_l$ [mas yr$^{-1}$]')
-    axes[3].set_ylabel(r'$\mu_b$ [mas yr$^{-1}$]')
-    axes[4].set_ylabel(r'$v_{\rm los}$ [km s$^{-1}$]')
-
-    axes[0].set_xlim(lon_lims)
-    axes[0].set_ylim(-1,1)
-
-    axes[1].set_ylim(dist_lims)
-    axes[2].set_ylim(-12, 0)
-    axes[3].set_ylim(-2, 8)
-    axes[4].set_ylim(vlos_lims)
-
-    return fig, w0
-
-class LnPostWrapper(object):
-    def __init__(self, integration_time):
-        self.integration_time = integration_time
-    def __call__(self, p, *args, **kwargs):
-        return orbitfit.ln_posterior(list(p)+[self.integration_time],*args,**kwargs)
-
-def main(top_output_path, potential_file, data_file, sign, dt,
+def main(top_output_path, potential_file, dt,
          nsteps, nwalkers=None, mpi=False, overwrite=False, seed=42, continue_mcmc=False):
     np.random.seed(seed)
     pool = get_pool(mpi=mpi)
-
-    # Solar position and motion
-    reference_frame = dict()
-    reference_frame['galactocentric_frame'] = galactocentric_frame
-    reference_frame['vcirc'] = vcirc
-    reference_frame['vlsr'] = vlsr
 
     # Load the potential object
     try:
@@ -138,59 +51,32 @@ def main(top_output_path, potential_file, data_file, sign, dt,
 
     sampler_filename = os.path.join(output_path, "sampler.pickle")
     if os.path.exists(sampler_filename) and overwrite:
+        logger.debug("Overwriting sampler file: {}".format(sampler_filename))
         time.sleep(0.5)
         os.remove(sampler_filename)
 
+    minimize_filename = os.path.join(output_path, "minimized.npy")
+    if os.path.exists(minimize_filename) and overwrite:
+        logger.debug("Overwriting minimize file: {}".format(minimize_filename))
+        os.remove(minimize_filename)
+
     # ------------------------------------------------------------------------
-    # read and prepare data
-    tbl = np.genfromtxt(data_file, dtype=None, skip_header=2, names=True)
+    # read data
+    all_ophdata = OphiuchusData()
+    fit_ophdata = OphiuchusData("(source == 'Sesar2015a') | (Name == 'cand9') | (Name == 'cand14')")
 
-    dists = []
-    dist_errs = []
-    for DM,err_DM in zip(tbl['DM'], tbl['err_DM']):
-        d = distance(np.random.normal(DM, err_DM, size=1024)).to(u.kpc).value
-        dists.append(np.median(d))
-        dist_errs.append(np.std(d))
-    dists = np.array(dists)*u.kpc
-    dist_errs = np.array(dist_errs)*u.kpc
+    # This is just a good place to initialize from -- I know it sucks to hard-code in
+    p0 = [np.median(fit_ophdata.coord_oph.phi2.decompose(galactic).value)] + \
+         [np.median(fit_ophdata.coord_oph.distance.decompose(galactic).value)] + \
+         [-3.56738886e-02] + \
+         [3.83403870e-03] + \
+         [np.median(fit_ophdata.veloc['vr']).decompose(galactic).value] + \
+         [3., -3.] # t_forw, t_back
 
-    # make astropy coordinate objects and rotate into stream coordinates
-    data_coord = coord.ICRS(ra=tbl['ra']*u.degree, dec=tbl['dec']*u.degree, distance=dists)\
-                      .transform_to(coord.Galactic)
-    R = orbitfit.compute_stream_rotation_matrix(data_coord, align_lon='max')
-    data_rot = orbitfit.rotate_sph_coordinate(data_coord, R)
-
-    # containers for data and uncertainties in correct units
-    data = [data_coord.l.decompose(galactic),
-            data_coord.b.decompose(galactic),
-            dists,
-            (tbl['mu_l']*u.mas/u.yr).decompose(galactic),
-            (tbl['mu_b']*u.mas/u.yr).decompose(galactic),
-            (tbl['v_los']*u.km/u.s).decompose(galactic)]
-
-    errs = [0*data_coord.l.decompose(galactic),
-            0*data_coord.b.decompose(galactic),
-            dist_errs,
-            (tbl['err_mu_l']*u.mas/u.yr).decompose(galactic),
-            (tbl['err_mu_b']*u.mas/u.yr).decompose(galactic),
-            (tbl['err_v_los']*u.km/u.s).decompose(galactic)]
-
-    # if not os.path.exists(minimize_file):
-    # for initial guess for inference, take the star with smallest phi1 as the pivot
-    ix = data_rot.lon.argmin() # HACK: should be customizable
-    x0 = (data_rot.lat.decompose(galactic).value[ix],) + \
-        tuple([data[j][ix].decompose(galactic).value for j in range(2,6)])
-
-    # initial guess at integration time
-    integration_time = 6. # Myr
-
-    # first minimize
-    p0 = list(x0) + [sign*integration_time]
-    args = (data_coord,
-            [d for d in data[3:]],
-            [e for e in errs],
-            potential, sign*dt, R, reference_frame,
-            np.radians(0.1), 0.025, 0.002) # phi2_sigma, d_sigma, vlos_sigma
+    freeze = dict(phi2_sigma=np.radians(0.1),
+                  d_sigma=0.025,
+                  vr_sigma=0.002)
+    args = (fit_ophdata, potential, dt, freeze)
 
     if continue_mcmc and not os.path.exists(sampler_filename):
         raise ValueError("Can't continue walkers -- sampler file doesn't exist!")
@@ -210,15 +96,16 @@ def main(top_output_path, potential_file, data_file, sign, dt,
             p0 = sampler.chain[:,-1]
             ndim = p0.shape[-1]
             X_minimize = sampler.X_minimize
+            args = sampler.args
 
         else:
-            # res = so.minimize(lambda *args,**kwargs: -orbitfit.ln_posterior(*args, **kwargs),
-            #                   x0=p0, method='powell', args=args)
-            # X_minimize = res.x
-            # logger.info("Minimized params: {}".format(X_minimize))
-
-            # TESTING
-            X_minimize = [-2.84564718e-03, 8.83177846e+00, -3.38193396e-02, 2.84375111e-03, 2.91714087e-01, -6.50033803e+00]
+            if not os.path.exists(minimize_filename):
+                res = so.minimize(lambda *args,**kwargs: -orbitfit.ln_posterior(*args, **kwargs),
+                                  x0=p0, method='powell', args=args)
+                X_minimize = res.x
+                logger.info("Minimized params: {}".format(X_minimize))
+                np.save(minimize_filename, X_minimize)
+            X_minimize = np.load(minimize_filename)
 
             # use output from minimize to initialize MCMC
             _p0 = X_minimize[:-1]
@@ -227,17 +114,16 @@ def main(top_output_path, potential_file, data_file, sign, dt,
             if nwalkers is None:
                 nwalkers = ndim*8
             p0 = np.zeros((nwalkers,ndim))
-            p0[:,0] = np.random.normal(_p0[0], np.radians(0.001), size=nwalkers)
-            p0[:,1] = np.random.normal(_p0[1], errs[2][ix]/100., size=nwalkers)
-            p0[:,2] = np.random.normal(_p0[2], errs[3][ix]/10000., size=nwalkers)
-            p0[:,3] = np.random.normal(_p0[3], errs[4][ix]/10000., size=nwalkers)
-            p0[:,4] = np.random.normal(_p0[4], errs[5][ix]/100., size=nwalkers)
+            N = np.random.normal
+            p0[:,0] = N(_p0[0], np.radians(0.001), size=nwalkers) # phi2
+            p0[:,1] = N(_p0[1], np.median(fit_ophdata.coord_err['distance'].value)/100., size=nwalkers)
+            p0[:,2] = N(_p0[2], np.median(fit_ophdata.veloc_err['mul'].value)/1000., size=nwalkers)
+            p0[:,3] = N(_p0[3], np.median(fit_ophdata.veloc_err['mub'].value)/1000., size=nwalkers)
+            p0[:,4] = N(_p0[4], np.median(fit_ophdata.veloc_err['vr'].value)/100., size=nwalkers)
 
         # get the integration time from minimization or cached on sampler object
-        integ_time = X_minimize[5]
-        ln_posterior = LnPostWrapper(integ_time)
         sampler = emcee.EnsembleSampler(nwalkers=nwalkers, dim=ndim,
-                                        lnpostfn=ln_posterior,
+                                        lnpostfn=orbitfit.ln_posterior,
                                         pool=pool, args=args)
 
         logger.info("Starting MCMC sampling...")
@@ -270,11 +156,17 @@ def main(top_output_path, potential_file, data_file, sign, dt,
     fig.tight_layout()
     fig.savefig(os.path.join(output_path, "walkers.png"), dpi=300)
 
-    X2 = np.median(sampler.flatchain, axis=0)
-    print(X2)
-    fig,w0 = plot_data_orbit(data, errs, data_coord, data_rot, X2, potential, R, integration_time=integ_time)
+    # plot orbit fits
+    ix = np.random.randint(len(sampler.flatchain), size=128)
+    fig = plot_data_orbit(all_ophdata)
+    for sample in sampler.flatchain[ix]:
+        sample_w0 = sample[:5]
+        w = integrate_forward_backward(potential, sample_w0, t_forw=sample[5], t_back=sample[6])
+        fig = plot_data_orbit(all_ophdata, orbit_w=w, data_style=dict(marker=None),
+                              orbit_style=dict(color='#2166AC', alpha=0.1))
+
     fig.tight_layout()
-    fig.savefig(os.path.join(output_path, "median-orbit.png"), dpi=300)
+    fig.savefig(os.path.join(output_path, "orbits.png"), dpi=300)
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
