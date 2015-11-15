@@ -20,3 +20,5 @@ if not _ASTROPY_SETUP_:
     vlsr = [-11.1, 24, 7.25]*u.km/u.s
 
     del coord, u
+
+    from .util import *
