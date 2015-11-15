@@ -42,9 +42,33 @@ default_orbit_style = {
 def plot_data_orbit(ophdata, orbit_w=None, use_stream_coords=False, lims=None,
                     fig=None, data_style=None, orbit_style=None):
     """
-    TODO!
-    """
+    Plot the Ophiuchus stream data and optionally overplot an orbit in either
+    galactic or stream coordinates.
 
+    Parameters
+    ----------
+    ophdata : :class:`ophiuchus.data.OphiuchusData`
+    orbit_w : :class:`numpy.ndarray` (optional)
+    use_stream_coords : bool (optional)
+        Plot things in terms of rotated stream coordinates. Default is False,
+        will plot in terms of Galactic coordinates.
+    lims : dict (optional)
+        A dictionary of axis limits -- must contain units. The units specified
+        in the axis limits will be the displayed units of the data.
+    fig : :class:`matplotlib.Figure` (optional)
+        Overplot multiple datasets on one figure.
+    data_style : dict (optional)
+        Dictionary of keyword style arguments passed to
+        :func:`matplotlib.errorbar` for the data points.
+    orbit_style : dict (optional)
+        Dictionary of keyword style arguments passed to
+        :func:`matplotlib.plot` for the orbit line.
+
+    Returns
+    -------
+    fig : :class:`matplotlib.Figure`
+
+    """
     if lims is None:
         lims = default_lims
     else:
