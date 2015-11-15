@@ -6,9 +6,6 @@ from __future__ import division, print_function
 
 __author__ = "adrn <adrn@astro.columbia.edu>"
 
-# standard lib
-from collections import defaultdict
-
 # Third-party
 import astropy.coordinates as coord
 import astropy.units as u
@@ -17,7 +14,7 @@ import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.stats import norm
 
-from gary.coordinates import vgal_to_hel, vhel_to_gal
+from gary.coordinates import vgal_to_hel
 from gary.units import galactic
 from gary.integrate import DOPRI853Integrator
 
