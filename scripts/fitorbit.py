@@ -66,12 +66,12 @@ def main(top_output_path, potential_file, dt,
     fit_ophdata = OphiuchusData("(source == 'Sesar2015a') | (Name == 'cand9') | (Name == 'cand14')")
 
     # This is just a good place to initialize from -- I know it sucks to hard-code in
-    p0 = [np.median(fit_ophdata.coord_oph.phi2.decompose(galactic).value)] + \
-         [np.median(fit_ophdata.coord_oph.distance.decompose(galactic).value)] + \
-         [-3.56738886e-02] + \
-         [3.83403870e-03] + \
-         [np.median(fit_ophdata.veloc['vr']).decompose(galactic).value] + \
-         [3., -3.] # t_forw, t_back
+    minimize_p0 = [np.median(fit_ophdata.coord_oph.phi2.decompose(galactic).value)] + \
+                  [np.median(fit_ophdata.coord_oph.distance.decompose(galactic).value)] + \
+                  [-3.56738886e-02] + \
+                  [3.83403870e-03] + \
+                  [np.median(fit_ophdata.veloc['vr']).decompose(galactic).value] + \
+                  [3., -3.] # t_forw, t_back
 
     freeze = dict(phi2_sigma=np.radians(0.1),
                   d_sigma=0.025,
@@ -101,14 +101,14 @@ def main(top_output_path, potential_file, dt,
         else:
             if not os.path.exists(minimize_filename):
                 res = so.minimize(lambda *args,**kwargs: -orbitfit.ln_posterior(*args, **kwargs),
-                                  x0=p0, method='powell', args=args)
+                                  x0=minimize_p0, method='powell', args=args)
                 X_minimize = res.x
                 logger.info("Minimized params: {}".format(X_minimize))
                 np.save(minimize_filename, X_minimize)
             X_minimize = np.load(minimize_filename)
 
             # use output from minimize to initialize MCMC
-            _p0 = X_minimize[:-1]
+            _p0 = X_minimize
             ndim = len(_p0)
 
             if nwalkers is None:
@@ -120,6 +120,8 @@ def main(top_output_path, potential_file, dt,
             p0[:,2] = N(_p0[2], np.median(fit_ophdata.veloc_err['mul'].value)/1000., size=nwalkers)
             p0[:,3] = N(_p0[3], np.median(fit_ophdata.veloc_err['mub'].value)/1000., size=nwalkers)
             p0[:,4] = N(_p0[4], np.median(fit_ophdata.veloc_err['vr'].value)/100., size=nwalkers)
+            p0[:,5] = N(_p0[5], 0.01, size=nwalkers)
+            p0[:,6] = N(_p0[6], 0.01, size=nwalkers)
 
         # get the integration time from minimization or cached on sampler object
         sampler = emcee.EnsembleSampler(nwalkers=nwalkers, dim=ndim,
@@ -148,6 +150,7 @@ def main(top_output_path, potential_file, dt,
         logger.debug("Loading sampler from: {}".format(sampler_filename))
         with open(sampler_filename, 'r') as f:
             sampler = pickle.load(f)
+        ndim = sampler.dim
 
     # plot walker trace
     fig,axes = pl.subplots(ndim,1,figsize=(4,3*ndim+1))
@@ -157,15 +160,13 @@ def main(top_output_path, potential_file, dt,
     fig.savefig(os.path.join(output_path, "walkers.png"), dpi=300)
 
     # plot orbit fits
-    ix = np.random.randint(len(sampler.flatchain), size=128)
+    ix = np.random.randint(len(sampler.flatchain), size=64)
     fig = plot_data_orbit(all_ophdata)
     for sample in sampler.flatchain[ix]:
-        sample_w0 = sample[:5]
+        sample_w0 = fit_ophdata._mcmc_sample_to_w0(sample[:5])[:,0]
         w = integrate_forward_backward(potential, sample_w0, t_forw=sample[5], t_back=sample[6])
         fig = plot_data_orbit(all_ophdata, orbit_w=w, data_style=dict(marker=None),
-                              orbit_style=dict(color='#2166AC', alpha=0.1))
-
-    fig.tight_layout()
+                              orbit_style=dict(color='#2166AC', alpha=0.1), fig=fig)
     fig.savefig(os.path.join(output_path, "orbits.png"), dpi=300)
 
 if __name__ == "__main__":
