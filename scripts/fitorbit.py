@@ -185,10 +185,6 @@ if __name__ == "__main__":
                         required=True, help="Path to save the output file.")
     parser.add_argument("--potential-file", dest="potential_file",
                         required=True, help="Name of the potential YAML file.")
-    parser.add_argument("--data-file", dest="data_file",
-                        required=True, help="Path to the data file for Ophiuchus members.")
-    parser.add_argument("--sign", dest="sign", type=int, required=True,
-                        help="Integrate forwards or backwards from initial condition.")
     parser.add_argument("--dt", dest="dt", type=float, default=0.5,
                         help="Integration timestep.")
 
@@ -211,8 +207,8 @@ if __name__ == "__main__":
     else:
         logger.setLevel(logging.INFO)
 
-    main(args.output_path, args.potential_file, data_file=args.data_file,
-         sign=args.sign, dt=args.dt, nsteps=args.nsteps,
+    main(args.output_path, args.potential_file,
+         dt=args.dt, nsteps=args.nsteps,
          nwalkers=args.nwalkers, mpi=args.mpi, overwrite=args.overwrite,
          continue_mcmc=args.continue_mcmc)
 
