@@ -30,3 +30,6 @@ def get_extensions():
     cfg['extra_compile_args'] = ['--std=gnu99']
 
     return [Extension('ophiuchus.potential._potential', **cfg)]
+
+def get_package_data():
+    return {'ophiuchus.potential': ['yml/*.yml']}
