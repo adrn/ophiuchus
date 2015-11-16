@@ -15,7 +15,7 @@ from scipy.signal import argrelmin
 # Project
 from streammorphology.ensemble import align_ensemble
 from .ophorbitgridexperiment import OphOrbitGridExperiment
-from .mockstream import apw_stream, dissolved_stream
+from .mockstream import dissolved_stream
 
 __all__ = ['MockStreamGrid']
 
