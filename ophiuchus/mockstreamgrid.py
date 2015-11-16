@@ -93,7 +93,7 @@ class MockStreamGrid(OphOrbitGridExperiment):
 
         # constant + disruption
         prog_mass = np.zeros_like(t) + 1E4
-        rr = np.sqrt(np.sum(ww[:,0].T[:3]**2,axis=0))
+        rr = np.sqrt(np.sum(ww.T[:3]**2,axis=0))
         peri_ix, = argrelmin(rr)
         disrupt_idx = peri_ix[-1]
         if np.abs(peri_ix[-1] - t.size) < 50:
