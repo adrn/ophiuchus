@@ -10,11 +10,12 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 from astropy import log as logger
 import numpy as np
 import gary.integrate as gi
+from scipy.signal import argrelmin
 
 # Project
 from streammorphology.ensemble import align_ensemble
 from .ophorbitgridexperiment import OphOrbitGridExperiment
-from .mockstream import apw_stream
+from .mockstream import apw_stream, dissolved_stream
 
 __all__ = ['MockStreamGrid']
 
@@ -90,11 +91,22 @@ class MockStreamGrid(OphOrbitGridExperiment):
         ww = w[:,0].copy()
         logger.debug("...finished integrating progenitor orbit.")
 
+        # constant + disruption
         prog_mass = np.zeros_like(t) + 1E4
+        rr = np.sqrt(np.sum(ww[:,0].T[:3]**2,axis=0))
+        peri_ix, = argrelmin(rr)
+        disrupt_idx = peri_ix[-1]
+        if np.abs(peri_ix[-1] - t.size) < 50:
+            disrupt_idx = peri_ix[-2]
+
         try:
-            stream = apw_stream(potential.c_instance, t, ww,
-                                release_every=c['release_every'], G=potential.G,
-                                prog_mass=prog_mass)
+            # stream = apw_stream(potential.c_instance, t, ww,
+            #                     release_every=c['release_every'], G=potential.G,
+            #                     prog_mass=prog_mass)
+            stream = dissolved_stream(potential.c_instance, t, ww,
+                                      release_every=c['release_every'], G=potential.G,
+                                      prog_mass=prog_mass,
+                                      disrupt_idx=disrupt_idx)
         except RuntimeError:
             logger.warning("Failed to integrate orbits")
             result['w'] = np.ones((nparticles,6))*np.nan
