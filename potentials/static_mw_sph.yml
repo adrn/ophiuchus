@@ -10,7 +10,7 @@ parameters:
     b: 0.28
     m: 70000000000.0
   halo:
-    q_z: 0.9
+    q_z: 1.0
     r_s: 30.0
     v_c: 0.19
   spheroid:
