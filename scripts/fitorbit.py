@@ -1,6 +1,13 @@
 # coding: utf-8
 
-""" Fit orbit to the Ophiuchus stream members. """
+""" Fit orbit to the Ophiuchus stream members.
+
+Call like:
+
+python fitorbit.py --output-path=../output/orbitfits/ --potential=barred_mw \
+-v --nsteps=256 --nwalkers=64 --mpi  --fixtime
+
+"""
 
 from __future__ import division, print_function
 
@@ -29,21 +36,17 @@ from ophiuchus.data import OphiuchusData
 from ophiuchus.plot import plot_data_orbit
 import ophiuchus.potential as op
 
-def main(top_output_path, potential_file, dt,
+def main(top_output_path, potential_name, dt,
          nsteps, nwalkers=None, mpi=False, overwrite=False, seed=42, continue_mcmc=False,
          fix_integration_time=False):
     np.random.seed(seed)
     pool = get_pool(mpi=mpi)
 
     # Load the potential object
-    try:
-        potential = gp.load(potential_file)
-    except:
-        potential = gp.load(potential_file, module=op)
+    potential = op.load_potential(potential_name)
 
     # top-level output path for saving (this will create a subdir within output_path)
     top_output_path = os.path.abspath(os.path.expanduser(top_output_path))
-    potential_name = os.path.splitext(os.path.basename(potential_file))[0]
     output_path = os.path.join(top_output_path, potential_name)
     logger.debug("Output path: {}".format(output_path))
 
@@ -197,7 +200,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--output-path", dest="output_path",
                         required=True, help="Path to save the output file.")
-    parser.add_argument("--potential-file", dest="potential_file",
+    parser.add_argument("--potential", dest="potential_name",
                         required=True, help="Name of the potential YAML file.")
     parser.add_argument("--dt", dest="dt", type=float, default=0.5,
                         help="Integration timestep.")
@@ -223,7 +226,7 @@ if __name__ == "__main__":
     else:
         logger.setLevel(logging.INFO)
 
-    main(args.output_path, args.potential_file,
+    main(args.output_path, args.potential_name,
          dt=args.dt, nsteps=args.nsteps,
          nwalkers=args.nwalkers, mpi=args.mpi, overwrite=args.overwrite,
          continue_mcmc=args.continue_mcmc,
