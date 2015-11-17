@@ -185,6 +185,10 @@ def main(top_output_path, potential_name, dt,
                               orbit_style=dict(color='#2166AC', alpha=0.1), fig=fig)
     fig.savefig(os.path.join(output_path, "orbits.png"), dpi=300)
 
+    # convert to w0 and save
+    w0 = fit_ophdata._mcmc_sample_to_w0(sampler.flatchain)
+    np.save(os.path.join(output_path, "w0.npy"), w0)
+
 if __name__ == "__main__":
     from argparse import ArgumentParser
     import logging
