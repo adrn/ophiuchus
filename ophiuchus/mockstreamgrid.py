@@ -13,7 +13,6 @@ import gary.integrate as gi
 from scipy.signal import argrelmin
 
 # Project
-from streammorphology.ensemble import align_ensemble
 from .ophorbitgridexperiment import OphOrbitGridExperiment
 from .mockstream import dissolved_stream
 
