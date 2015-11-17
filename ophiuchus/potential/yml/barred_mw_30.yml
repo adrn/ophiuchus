@@ -1,0 +1,25 @@
+class: OphiuchusPotential
+parameters:
+  bar:
+    Omega: 0.030681364951611233
+    alpha: 0.349065850398
+    m: 15652173913.04348
+    r_s: 1.0
+  disk:
+    a: 3.0
+    b: 0.28
+    m: 50000000000.0
+  halo:
+    q_z: 0.9
+    r_s: 30.0
+    v_c: 0.19
+  spheroid:
+    c: 0.1
+    m: 0.0
+units:
+  angle: rad
+  angular speed: mas / yr
+  length: kpc
+  mass: solMass
+  speed: km / s
+  time: Myr
