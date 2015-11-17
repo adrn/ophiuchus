@@ -26,14 +26,16 @@ class MockStreamGrid(OphOrbitGridExperiment):
         3: "Failed to integrate progenitor orbit"
     }
 
-    _run_kwargs = ['integration_time', 'dt', 'release_every']
+    _run_kwargs = ['integration_time', 'dt', 'release_every', 'w0_path', 'norbits', 'potential_name']
     config_defaults = dict(
         integration_time=8192., # Total time to integrate for in Myr
         dt=1., # timestep
         release_every=1, # release a test particle every N timesteps
         w0_filename='w0.npy', # Name of the initial conditions file
-        cache_filename='mockstreamgrid.npy', # Name of the cache file
-        potential_filename='potential.yml' # Name of cached potential file
+        w0_path='.', # path to initial conditions file, relative to cache path
+        norbits=128, # number of orbits to read from the w0 file
+        potential_name=None,
+        cache_filename='mockstreamgrid.npy' # Name of the cache file
     )
 
     def __init__(self, cache_path, overwrite=False, **kwargs):
