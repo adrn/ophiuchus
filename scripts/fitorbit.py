@@ -25,7 +25,6 @@ import matplotlib.pyplot as pl
 import numpy as np
 import scipy.optimize as so
 import emcee
-import gary.potential as gp
 from gary.units import galactic
 from gary.util import get_pool
 

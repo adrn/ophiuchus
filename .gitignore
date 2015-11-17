@@ -51,4 +51,4 @@ distribute-*.tar.gz
 
 notebooks/*
 *.npy
-output/orbitfits
+output/orbitfit
