@@ -39,7 +39,7 @@ def main(top_output_path, split_ix=256, potential_name=None, overwrite=False):
     for potential_name in paths:
         if potential_name.startswith("."): continue
 
-        this_path = os.path.join(output_path, "potential_name")
+        this_path = os.path.join(output_path, potential_name)
         w0_filename = os.path.join(this_path, "w0.npy")
         if os.path.exists(w0_filename) and overwrite:
             os.remove(w0_filename)
