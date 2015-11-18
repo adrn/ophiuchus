@@ -37,7 +37,7 @@ import ophiuchus.potential as op
 
 def main(top_output_path, potential_name, dt,
          nsteps, nwalkers=None, mpi=False, overwrite=False, seed=42, continue_mcmc=False,
-         fix_integration_time=False):
+         fix_integration_time=False, fix_dispersions=False):
     np.random.seed(seed)
     pool = get_pool(mpi=mpi)
 
@@ -120,9 +120,16 @@ def main(top_output_path, potential_name, dt,
             _p0 = X_minimize
             ndim = len(_p0)
 
+            if not fix_integration_time:
+                ndim += 2
+
+            if not fix_dispersions:
+                ndim += 3
+
             if nwalkers is None:
                 nwalkers = ndim*8
-            p0 = np.zeros((nwalkers,ndim))
+
+            p0 = np.zeros((nwalkers,len(_p0)))
             N = np.random.normal
             p0[:,0] = N(_p0[0], np.radians(0.001), size=nwalkers) # phi2
             p0[:,1] = N(_p0[1], np.median(fit_ophdata.coord_err['distance'].value)/100., size=nwalkers)
@@ -131,8 +138,13 @@ def main(top_output_path, potential_name, dt,
             p0[:,4] = N(_p0[4], np.median(fit_ophdata.veloc_err['vr'].value)/100., size=nwalkers)
 
             if not fix_integration_time:
-                p0[:,5] = N(_p0[5], 0.01, size=nwalkers)
-                p0[:,6] = N(_p0[6], 0.01, size=nwalkers)
+                p0 = np.hstack((p0, N(_p0[5], 0.01, size=nwalkers)[:,None]))
+                p0 = np.hstack((p0, N(_p0[6], 0.01, size=nwalkers)[:,None]))
+
+            if not fix_dispersions:
+                for name in ['phi2_sigma', 'd_sigma', 'vr_sigma']:
+                    s = freeze.pop(name)
+                    p0 = np.hstack((p0, N(s, s/1000., size=nwalkers)[:,None]))
 
         # get the integration time from minimization or cached on sampler object
         sampler = emcee.EnsembleSampler(nwalkers=nwalkers, dim=ndim,
@@ -209,8 +221,6 @@ if __name__ == "__main__":
                         help="Integration timestep.")
 
     # emcee
-    parser.add_argument("--fixtime", dest="fixtime", default=False,
-                        action="store_true", help="Don't sample over forward/backward integration times.")
     parser.add_argument("--mpi", dest="mpi", default=False, action="store_true",
                         help="Run with MPI.")
     parser.add_argument("--nwalkers", dest="nwalkers", type=int, default=None,
@@ -219,6 +229,11 @@ if __name__ == "__main__":
                         help="Number of steps to take MCMC.")
     parser.add_argument("--continue", dest="continue_mcmc", default=False,
                         action="store_true", help="Continue sampling from where the sampler left off.")
+
+    parser.add_argument("--fixtime", dest="fixtime", default=False,
+                        action="store_true", help="Don't sample over forward/backward integration times.")
+    parser.add_argument("--fixdisp", dest="fixdisp", default=False,
+                        action="store_true", help="Don't sample over extra dispersions.")
 
     args = parser.parse_args()
 
@@ -233,6 +248,6 @@ if __name__ == "__main__":
          dt=args.dt, nsteps=args.nsteps,
          nwalkers=args.nwalkers, mpi=args.mpi, overwrite=args.overwrite,
          continue_mcmc=args.continue_mcmc,
-         fix_integration_time=args.fixtime)
+         fix_integration_time=args.fixtime, fix_dispersions=args.fixdisp)
 
     sys.exit(0)
