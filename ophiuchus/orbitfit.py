@@ -95,19 +95,19 @@ def ln_prior(p, ophdata, potential, dt, freeze=None):
         return -np.inf
 
     # prior on instrinsic width of stream
-    if freeze['phi2_sigma'] is None:
+    if 'phi2_sigma' not in freeze:
         if phi2_sigma <= 0.:
             return -np.inf
         lp += -np.log(phi2_sigma)
 
     # prior on instrinsic depth (distance) of stream
-    if freeze['d_sigma'] is None:
+    if 'd_sigma' not in freeze:
         if d_sigma <= 0.:
             return -np.inf
         lp += -np.log(d_sigma)
 
     # prior on instrinsic LOS velocity dispersion of stream
-    if freeze['vr_sigma'] is None:
+    if 'vr_sigma' not in freeze:
         if vr_sigma <= 0.:
             return -np.inf
         lp += -np.log(vr_sigma)
