@@ -18,6 +18,7 @@ import cPickle as pickle
 import os
 
 # Third-party
+import acor
 from astropy import log as logger
 import numpy as np
 
@@ -54,8 +55,18 @@ def main(top_output_path, split_ix=256, potential_name=None, overwrite=False):
         with open(os.path.join(this_path, "sampler.pickle")) as f:
             sampler = pickle.load(f)
 
-        _x0 = np.vstack(sampler.chain[:,split_ix:,:5])
+        # measure the autocorrelation time for each parameter
+        taus = []
+        for i in range(sampler.chain.shape[-1]):
+            tau,_,_ = acor.acor(sampler.chain[:,split_ix:,i])
+            taus.append(tau)
+        logger.debug("Autocorrelation times: {}".format(taus))
+        every = int(2*max(taus)) # take every XX step
+
+        _x0 = np.vstack(sampler.chain[:,split_ix::every,:5])
+        np.random.shuffle(_x0)
         w0 = all_ophdata._mcmc_sample_to_w0(_x0.T).T
+        logger.info("{} initial conditions after thinning chains".format(w0.shape[0]))
 
         # convert to w0 and save
         np.save(w0_filename, w0)
