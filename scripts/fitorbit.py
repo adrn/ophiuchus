@@ -197,7 +197,7 @@ def main(top_output_path, potential_name, dt,
     fig.savefig(os.path.join(output_path, "orbits.png"), dpi=300)
 
     # convert to w0 and save
-    w0 = fit_ophdata._mcmc_sample_to_w0(sampler.flatchain)
+    w0 = fit_ophdata._mcmc_sample_to_w0(sampler.flatchain.T).T
     np.save(os.path.join(output_path, "w0.npy"), w0)
 
 if __name__ == "__main__":
