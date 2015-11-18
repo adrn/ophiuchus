@@ -23,6 +23,9 @@ import numpy as np
 
 # This project
 from ophiuchus.data import OphiuchusData
+from ophiuchus.util import integrate_forward_backward
+from ophiuchus.plot import plot_data_orbit
+import ophiuchus.potential as op
 
 def main(top_output_path, split_ix=256, potential_name=None, overwrite=False):
     all_ophdata = OphiuchusData()
@@ -56,6 +59,18 @@ def main(top_output_path, split_ix=256, potential_name=None, overwrite=False):
 
         # convert to w0 and save
         np.save(w0_filename, w0)
+
+        potential = op.load_potential(potential_name)
+
+        ix = np.random.randint(len(sampler.flatchain), size=64)
+        fig = plot_data_orbit(all_ophdata)
+        for sample in sampler.flatchain[ix]:
+            sample_w0 = all_ophdata._mcmc_sample_to_w0(sample[:5])[:,0]
+            tf,tb = (3.,-3.)
+            w = integrate_forward_backward(potential, sample_w0, t_forw=tf, t_back=tb)
+            fig = plot_data_orbit(all_ophdata, orbit_w=w, data_style=dict(marker=None),
+                                  orbit_style=dict(color='#2166AC', alpha=0.1), fig=fig)
+        fig.savefig(os.path.join(this_path, "orbits-split.png"), dpi=300)
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
