@@ -20,6 +20,7 @@ import sys
 import time
 
 # Third-party
+import astropy.units as u
 from astropy import log as logger
 import matplotlib.pyplot as pl
 import numpy as np
@@ -37,16 +38,21 @@ import ophiuchus.potential as op
 
 def main(top_output_path, potential_name, dt,
          bar_alpha=None, bar_Omega=None,
-         nsteps, nwalkers=None, mpi=False, overwrite=False, seed=42, continue_mcmc=False,
+         nsteps=None, nwalkers=None, mpi=False, overwrite=False, seed=42, continue_mcmc=False,
          fix_integration_time=False, fix_dispersions=False):
     np.random.seed(seed)
     pool = get_pool(mpi=mpi)
 
     # Load the potential object
     if bar_alpha is not None and bar_Omega is not None:
+        alpha,alpha_unit = bar_alpha.split()
+        bar_alpha = (float(alpha)*u.Unit(alpha_unit)).decompose(galactic).value
+        Omega,Omega_unit = bar_Omega.split()
+        bar_Omega = (float(Omega)*u.Unit(Omega_unit)).decompose(galactic).value
+
         bar = dict(alpha=bar_alpha, Omega=bar_Omega)
-        logger.debug("Using a barred potential with alpha={}, Omega={}".format(bar_alpha, bar_Omega))
-        subdir = "alpha{:.0f}_Omega{:.0f}".format(bar_alpha, bar_Omega)
+        logger.debug("Using a barred potential with alpha={}, Omega={}".format(alpha, Omega))
+        subdir = "alpha{:s}_Omega{:s}".format(alpha, Omega)
     else:
         bar = None
         if 'barred_mw' in potential_name:
@@ -63,7 +69,7 @@ def main(top_output_path, potential_name, dt,
     logger.debug("Output path: {}".format(output_path))
 
     if not os.path.exists(output_path):
-        os.mkdir(output_path)
+        os.makedirs(output_path)
 
     sampler_filename = os.path.join(output_path, "sampler.pickle")
     if os.path.exists(sampler_filename) and overwrite:
@@ -234,9 +240,9 @@ if __name__ == "__main__":
                         help="Integration timestep.")
 
     # Bar parameters
-    parser.add_argument("--alpha", dest="bar_alpha", type=float, default=None,
+    parser.add_argument("--alpha", dest="bar_alpha", type=str, default=None,
                         help="Initial bar angle.")
-    parser.add_argument("--Omega", dest="bar_Omega", type=float, default=None,
+    parser.add_argument("--Omega", dest="bar_Omega", type=str, default=None,
                         help="Bar pattern speed.")
 
     # emcee
