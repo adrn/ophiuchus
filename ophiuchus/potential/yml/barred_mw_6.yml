@@ -2,7 +2,7 @@ class: OphiuchusPotential
 parameters:
   bar:
     Omega: 0.06136272990322247
-    alpha: 0.349065850398
+    alpha: 0.4363323129985824
     m: 15652173913.04348
     r_s: 1.0
   disk:
@@ -10,7 +10,7 @@ parameters:
     b: 0.28
     m: 50000000000.0
   halo:
-    q_z: 1.
+    q_z: 0.9
     r_s: 30.0
     v_c: 0.19
   spheroid:

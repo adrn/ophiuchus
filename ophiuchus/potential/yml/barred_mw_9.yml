@@ -1,8 +1,8 @@
 class: OphiuchusPotential
 parameters:
   bar:
-    Omega: 0.020454243301074156
-    alpha: 0.349065850398
+    Omega: 0.06136272990322247
+    alpha: 0.5235987755982988
     m: 15652173913.04348
     r_s: 1.0
   disk:
