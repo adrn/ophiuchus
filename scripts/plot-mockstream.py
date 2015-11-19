@@ -37,8 +37,6 @@ def main(path):
     ophdata = OphiuchusData()
 
     idx, = np.where(grid_d['success'])
-    print(idx)
-
     for i in idx:
         filename = os.path.join(plot_path, '{}.png'.format(i))
         if os.path.exists(filename):
@@ -47,7 +45,7 @@ def main(path):
 
         logger.debug("Plotting stream {}".format(i))
         fig = plot_data_orbit(ophdata, orbit_w=streams[i],
-                              orbit_style=dict(marker='.', ls='none', alpha=0.1))
+                              orbit_style=dict(marker='.', linestyle='none', alpha=0.1))
         fig.savefig(filename, dpi=300)
         pl.close(fig)
 
