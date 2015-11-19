@@ -36,17 +36,30 @@ from ophiuchus.plot import plot_data_orbit
 import ophiuchus.potential as op
 
 def main(top_output_path, potential_name, dt,
+         bar_alpha=None, bar_Omega=None,
          nsteps, nwalkers=None, mpi=False, overwrite=False, seed=42, continue_mcmc=False,
          fix_integration_time=False, fix_dispersions=False):
     np.random.seed(seed)
     pool = get_pool(mpi=mpi)
 
     # Load the potential object
-    potential = op.load_potential(potential_name)
+    if bar_alpha is not None and bar_Omega is not None:
+        bar = dict(alpha=bar_alpha, Omega=bar_Omega)
+        logger.debug("Using a barred potential with alpha={}, Omega={}".format(bar_alpha, bar_Omega))
+        subdir = "alpha{:.0f}_Omega{:.0f}".format(bar_alpha, bar_Omega)
+    else:
+        bar = None
+        if 'barred_mw' in potential_name:
+            raise ValueError("Must specify angle and pattern speed for the barred potential!")
+        subdir = None
+    potential = op.load_potential(potential_name, bar=bar)
 
     # top-level output path for saving (this will create a subdir within output_path)
     top_output_path = os.path.abspath(os.path.expanduser(top_output_path))
-    output_path = os.path.join(top_output_path, potential_name)
+    if subdir is not None:
+        output_path = os.path.join(top_output_path, potential_name, subdir)
+    else:
+        output_path = os.path.join(top_output_path, potential_name)
     logger.debug("Output path: {}".format(output_path))
 
     if not os.path.exists(output_path):
@@ -220,6 +233,12 @@ if __name__ == "__main__":
     parser.add_argument("--dt", dest="dt", type=float, default=0.5,
                         help="Integration timestep.")
 
+    # Bar parameters
+    parser.add_argument("--alpha", dest="bar_alpha", type=float, default=None,
+                        help="Initial bar angle.")
+    parser.add_argument("--Omega", dest="bar_Omega", type=float, default=None,
+                        help="Bar pattern speed.")
+
     # emcee
     parser.add_argument("--mpi", dest="mpi", default=False, action="store_true",
                         help="Run with MPI.")
@@ -245,6 +264,7 @@ if __name__ == "__main__":
         logger.setLevel(logging.INFO)
 
     main(args.output_path, args.potential_name,
+         bar_alpha=args.bar_alpha, bar_Omega=args.bar_Omega,
          dt=args.dt, nsteps=args.nsteps,
          nwalkers=args.nwalkers, mpi=args.mpi, overwrite=args.overwrite,
          continue_mcmc=args.continue_mcmc,
