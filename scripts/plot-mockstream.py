@@ -14,7 +14,7 @@ import numpy as np
 
 # This project
 from ophiuchus.data import OphiuchusData
-from ophiuchus.plot import plot_data_orbit
+from ophiuchus.plot import plot_data_stream
 from ophiuchus.mockstreamgrid import MockStreamGrid
 
 def main(path):
@@ -23,6 +23,8 @@ def main(path):
     grid_d = grid.read_cache()
     streams = grid_d['w']
     nsuccess = grid_d['success'].sum()
+    release_every = grid_d['release_every']
+    dt = grid_d['dt']
     logger.info("{} successful".format(nsuccess))
 
     if nsuccess == 0:
@@ -43,9 +45,11 @@ def main(path):
             logger.debug("Stream {} plot exists".format(i))
             continue
 
+        t = (np.arange(streams[i].shape[0])/2.).astype(int) / 1000. * release_every[i] * dt[i] # Gyr
+        t = t - t.max()
         logger.debug("Plotting stream {}".format(i))
-        fig = plot_data_orbit(ophdata, orbit_w=streams[i],
-                              orbit_style=dict(marker='.', linestyle='none', alpha=0.1))
+        fig = plot_data_stream(ophdata, stream_w=streams[i],
+                               stream_t=t, stream_style=dict(s=7, alpha=0.75, cmap='plasma'))
         fig.savefig(filename, dpi=300)
         pl.close(fig)
 
