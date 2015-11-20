@@ -287,18 +287,23 @@ def plot_data_stream(ophdata, stream_w=None, stream_t=None,
             x = w_coord.l.to(xlim.unit).value
             y = w_coord.b.to(ylim.unit).value
 
-        pts = axes[0].scatter(x, y, c=stream_t, **stream_style)
-        cbar_ax = fig.add_axes([0.7, 0.25, 0.25, 0.05]) # [left, bottom, width, height
-        cb = fig.colorbar(pts, cax=cbar_ax, orientation='horizontal',
-                          ticks=np.arange(int(round(stream_t.min())), 0+1, 1.))
+        if stream_t is None:
+            stream_style['c'] = stream_t
+
+        pts = axes[0].scatter(x, y, **stream_style)
+
+        if stream_t is not None:
+            cbar_ax = fig.add_axes([0.7, 0.25, 0.25, 0.05]) # [left, bottom, width, height
+            cb = fig.colorbar(pts, cax=cbar_ax, orientation='horizontal',
+                              ticks=np.arange(int(round(stream_t.min())), 0+1, 1.))
         # cb.set_clim()
         # np.arange(int(round(stream_t.min())), 0+1, 1.))
 
-        axes[1].scatter(x, w_coord.distance.to(lims['distance'].unit).value, c=stream_t, **stream_style)
+        axes[1].scatter(x, w_coord.distance.to(lims['distance'].unit).value, **stream_style)
 
         for i,k in enumerate(ophdata.veloc.keys()):
             this_lims = lims[k]
-            axes[i+2].scatter(x, w_vel[i].to(this_lims.unit).value, c=stream_t, **stream_style)
+            axes[i+2].scatter(x, w_vel[i].to(this_lims.unit).value, **stream_style)
 
     # bottom axis label
     axes[2].set_xlabel(xlabel)
