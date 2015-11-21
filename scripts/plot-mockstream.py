@@ -17,10 +17,10 @@ from ophiuchus.data import OphiuchusData
 from ophiuchus.plot import plot_data_stream
 from ophiuchus.mockstreamgrid import MockStreamGrid
 
-def main(path):
+def main(path, n):
     # load mock streams
     grid = MockStreamGrid.from_config(os.path.abspath(path), config_filename="mockstreamgrid.cfg")
-    grid_d = grid.read_cache()
+    grid_d = grid.read_cache()[:n]
     streams = grid_d['w']
     nsuccess = grid_d['success'].sum()
     release_every = grid_d['release_every']
@@ -65,6 +65,8 @@ if __name__ == "__main__":
                         default=False, help="Be quiet! (default = False)")
     parser.add_argument("--path", dest="path",
                         required=True, help="Path to the output file.")
+    parser.add_argument("-n", dest="n", default=128, type=int,
+                        help="Number to plot")
 
     args = parser.parse_args()
 
@@ -75,4 +77,4 @@ if __name__ == "__main__":
     else:
         logger.setLevel(logging.INFO)
 
-    main(args.path)
+    main(args.path, args.n)
