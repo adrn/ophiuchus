@@ -287,7 +287,7 @@ def plot_data_stream(ophdata, stream_w=None, stream_t=None,
             x = w_coord.l.to(xlim.unit).value
             y = w_coord.b.to(ylim.unit).value
 
-        if stream_t is None:
+        if stream_t is not None:
             stream_style['c'] = stream_t
 
         pts = axes[0].scatter(x, y, **stream_style)
