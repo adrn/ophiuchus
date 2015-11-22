@@ -24,7 +24,9 @@ def main(path, overwrite=False):
 
     path = os.path.abspath(path)
     name = os.path.basename(path)
-    output_file = os.path.join(path, 'lyap.pickle')
+    output_file = os.path.join(path, 'lyap.npy')
+    t_output_file = os.path.join(path, 'lyap_t.npy')
+    ws_output_file = os.path.join(path, 'lyap_ws.npy')
 
     if os.path.exists(output_file) and overwrite:
         os.remove(output_file)
@@ -39,9 +41,9 @@ def main(path, overwrite=False):
 
     # compute lyapunov exponent
     lyap,t,ws = gd.fast_lyapunov_max(w0, pot, dt=dt, nsteps=nsteps)
-
-    with open(output_file, 'w') as f:
-        pickle.dump((lyap,t,ws), f)
+    np.save(output_file, lyap)
+    np.save(t_output_file, t)
+    np.save(ws_output_file, ws)
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
