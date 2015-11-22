@@ -8,7 +8,6 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 
 # Standard library
 import os
-import cPickle as pickle
 
 # Third-party
 from astropy import log as logger
