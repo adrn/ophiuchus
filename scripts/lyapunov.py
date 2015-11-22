@@ -33,7 +33,7 @@ def main(path, overwrite=False):
         logger.info("Output file exists. Exiting.")
 
     # load initial conditions file
-    w0 = np.load(os.path.join(path), 'w0.npy')
+    w0 = np.load(os.path.join(path, 'w0.npy'))
     w0 = np.median(w0, axis=0)
     pot = op.load_potential(name)
 
