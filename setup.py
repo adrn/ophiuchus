@@ -76,7 +76,7 @@ package_info = get_package_info()
 
 # Add the project-global data
 package_info['package_data'].setdefault(PACKAGENAME, [])
-package_info['package_data'][PACKAGENAME].append('data/*')
+# package_info['package_data'][PACKAGENAME].append('data/*')
 
 # Define entry points for command-line scripts
 entry_points = {'console_scripts': []}
@@ -97,6 +97,7 @@ for root, dirs, files in os.walk(PACKAGENAME):
                 os.path.join(
                     os.path.relpath(root, PACKAGENAME), filename))
 package_info['package_data'][PACKAGENAME].extend(c_files)
+print(package_info['package_data'])
 
 # Note that requires and provides should not be included in the call to
 # ``setup``, since these are now deprecated. See this link for more details:
