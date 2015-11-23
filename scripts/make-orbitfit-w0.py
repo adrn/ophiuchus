@@ -14,13 +14,13 @@ from __future__ import division, print_function
 __author__ = "adrn <adrn@astro.columbia.edu>"
 
 # Standard library
-import cPickle as pickle
 import os
 
 # Third-party
 import acor
 from astropy import log as logger
 import numpy as np
+from six.moves import cPickle as pickle
 
 # This project
 from ophiuchus.data import OphiuchusData
@@ -52,7 +52,7 @@ def main(top_output_path, split_ix=256, potential_name=None, overwrite=False):
             logger.debug("File {} exists".format(w0_filename))
             continue
 
-        with open(os.path.join(this_path, "sampler.pickle")) as f:
+        with open(os.path.join(this_path, "sampler.pickle"), 'rb') as f:
             sampler = pickle.load(f)
 
         # measure the autocorrelation time for each parameter
@@ -66,6 +66,10 @@ def main(top_output_path, split_ix=256, potential_name=None, overwrite=False):
         _x0 = np.vstack(sampler.chain[:,split_ix::every,:5])
         np.random.shuffle(_x0)
         w0 = all_ophdata._mcmc_sample_to_w0(_x0.T).T
+
+        mean_w0 = all_ophdata._mcmc_sample_to_w0(np.mean(_x0, axis=0)).T
+        w0 = np.vstack((mean_w0, w0))
+
         logger.info("{} initial conditions after thinning chains".format(w0.shape[0]))
 
         # convert to w0 and save
