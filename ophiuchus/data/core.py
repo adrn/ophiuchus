@@ -95,3 +95,16 @@ class OphiuchusData(object):
                             vcirc=vcirc, vlsr=vlsr).decompose(galactic).value
         w0 = np.concatenate((x0, v0))
         return w0
+
+    def _w0_to_gal_coord_veloc(self, w0):
+        w0 = np.atleast_2d(w0)
+        w_coord = galactocentric_frame.realize_frame(coord.CartesianRepresentation(w0.T[:3]*u.kpc))\
+                                      .transform_to(coord.Galactic)
+        w_vel = gc.vgal_to_hel(w_coord, w0.T[3:]*u.kpc/u.Myr,
+                               galactocentric_frame=galactocentric_frame,
+                               vcirc=vcirc, vlsr=vlsr)
+        veloc = OrderedDict()
+        veloc['mul'] = w_vel[0]
+        veloc['mub'] = w_vel[1]
+        veloc['vr'] = w_vel[2]
+        return w_coord, veloc
