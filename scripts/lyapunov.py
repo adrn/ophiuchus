@@ -18,7 +18,7 @@ import gary.dynamics as gd
 import ophiuchus.potential as op
 
 def main(path, overwrite=False):
-    dt = 1.
+    dt = 2.
     nsteps = 2560000 # 256 steps per orbit -- 10000 orbital periods
 
     path = os.path.abspath(path)
@@ -34,8 +34,7 @@ def main(path, overwrite=False):
         logger.info("Output file exists. Exiting.")
 
     # load initial conditions file
-    w0 = np.load(os.path.join(path, 'w0.npy'))
-    w0 = np.median(w0, axis=0)
+    w0 = np.load(os.path.join(path, 'w0.npy'))[0] # load mean orbit
     pot = op.load_potential(name)
 
     # compute lyapunov exponent
