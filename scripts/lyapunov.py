@@ -34,7 +34,7 @@ def main(path, overwrite=False):
         logger.info("Output file exists. Exiting.")
 
     # load initial conditions file
-    w0 = np.load(os.path.join(path, 'w0.npy'))[0] # load mean orbit
+    w0 = np.ascontiguousarray(np.load(os.path.join(path, 'w0.npy'))[0]) # load mean orbit
     pot = op.load_potential(name)
 
     # compute lyapunov exponent
