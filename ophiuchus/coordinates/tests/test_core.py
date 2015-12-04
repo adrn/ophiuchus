@@ -40,3 +40,7 @@ def test_orbit_transform():
     c,v = orbit.to_frame(coord.Galactic)
     oph = c.transform_to(Ophiuchus)
     pm_l,pm_b,vr = v
+
+    assert pm_l.unit == u.mas/u.yr
+    assert pm_b.unit == u.mas/u.yr
+    assert vr.unit == vel.unit
