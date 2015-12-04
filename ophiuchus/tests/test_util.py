@@ -6,11 +6,7 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 
 # Third-party
 import astropy.units as u
-import matplotlib.pyplot as pl
-import numpy as np
-
 import gary.potential as gp
-import gary.dynamics as gd
 from gary.units import galactic
 
 # Project
