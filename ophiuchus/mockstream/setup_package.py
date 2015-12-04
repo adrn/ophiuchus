@@ -10,7 +10,7 @@ def get_extensions():
     # Get gary path
     import gary
     gary_base_path = os.path.split(gary.__file__)[0]
-    gary_incl_path = os.path.join(gary_base_path, "integrate", "dopri")
+    gary_incl_path = os.path.join(gary_base_path, "integrate", "cyintegrators", "dopri")
 
     # malloc
     mac_incl_path = "/usr/include/malloc"
