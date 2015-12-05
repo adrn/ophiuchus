@@ -21,6 +21,7 @@ from gary.integrate import DOPRI853Integrator
 # Project
 from . import galactocentric_frame, vcirc, vlsr
 from .coordinates import Ophiuchus
+from .util import integrate_forward_backward
 
 __all__ = ['ln_prior', 'ln_likelihood', 'ln_posterior']
 
@@ -159,32 +160,28 @@ def ln_likelihood(p, ophdata, potential, dt, freeze=None):
     chi2 += -vmag2 / (0.15**2)
 
     # integrate the orbit
-    t,w1 = potential.integrate_orbit(w0, dt=-dt, t1=0., t2=t_back, Integrator=DOPRI853Integrator)
-    t,w2 = potential.integrate_orbit(w0, dt=dt, t1=0., t2=t_forw, Integrator=DOPRI853Integrator)
-    w = np.vstack((w1[::-1,0], w2[1:,0]))
+    orbit = integrate_forward_backward(potential, w0, t_back=t_back, t_forw=t_forw)
+    w = np.squeeze(orbit.w())
 
     # rotate the model points to stream coordinates
-    model_c = gc_frame.realize_frame(coord.CartesianRepresentation(w[:,:3].T*u.kpc))\
-                      .transform_to(coord.Galactic)
+    model_c,model_v = orbit.to_frame(coord.Galactic, vcirc=vcirc, vlsr=vlsr,
+                                     galactocentric_frame=galactocentric_frame)
     model_oph = model_c.transform_to(Ophiuchus)
 
     # model stream points in ophiuchus coordinates
     model_phi1 = model_oph.phi1
     model_phi2 = model_oph.phi2.radian
     model_d = model_oph.distance.decompose(galactic).value
-    _tmp = vgal_to_hel(model_c, w[:,3:].T*u.kpc/u.Myr,
-                       galactocentric_frame=galactocentric_frame,
-                       vcirc=vcirc, vlsr=vlsr)
-    model_mul,model_mub,model_vr = [x.decompose(galactic).value for x in _tmp]
+    model_mul,model_mub,model_vr = [x.decompose(galactic).value for x in model_v]
 
-    # rotate the data to stream coordinates
+    # for independent variable, use cos(phi)
     data_x = np.cos(ophdata.coord_oph.phi1)
     model_x = np.cos(model_phi1)
     # data_x = ophdata.coord_oph.phi1.wrap_at(180*u.deg).radian
     # model_x = model_phi1.wrap_at(180*u.deg).radian
     ix = np.argsort(model_x)
 
-    # shortening for readability
+    # shortening for readability -- the data
     c,v = ophdata.coord_oph, ophdata.veloc
     c_err,v_err = ophdata.coord_err, ophdata.veloc_err
 

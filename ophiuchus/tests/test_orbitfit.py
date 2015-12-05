@@ -1,7 +1,5 @@
 # coding: utf-8
 
-""" ...explain... """
-
 from __future__ import division, print_function
 
 __author__ = "adrn <adrn@astro.columbia.edu>"
@@ -13,17 +11,19 @@ import matplotlib.pyplot as pl
 import numpy as np
 import gary.potential as gp
 import gary.integrate as gi
+import scipy.optimize as so
 
 # Project
 from .. import potential as op
 from ..data import OphiuchusData
 from ..orbitfit import ln_likelihood, ln_posterior
 from ..plot import plot_data_orbit
+from ..potential import load_potential
 
 def test_optimize():
     all_ophdata = OphiuchusData()
-    fit_ophdata = OphiuchusData(expr="source=='Sesar2015a'") # only fit thin part
-    potential = gp.load("/Users/adrian/projects/ophiuchus/potentials/static_mw.yml", module=op)
+    fit_ophdata = OphiuchusData(expr="source==b'Sesar2015a'") # only fit thin part
+    potential = load_potential("static_mw")
     # freeze = dict(t_forw=3., t_back=-5.,
     #               phi2_sigma=np.radians(0.1),
     #               d_sigma=0.025,
@@ -37,30 +37,33 @@ def test_optimize():
     guess = np.array([-2.70234950e-03, 8.44, -3.40761632e-02, 3.15424900e-03, 2.91923172e-01, 2.75, -8.])
 
     ll = ln_likelihood(guess, *args)
-    print(ll)
+    assert np.all(np.isfinite(ll))
 
-    import scipy.optimize as so
-    res = so.minimize(lambda *args,**kwargs: -ln_posterior(*args,**kwargs),
-                      x0=guess, method='powell', args=args)
-    best = res.x
-    print(res)
+    # TODO: wat do
+    # res = so.minimize(lambda *args,**kwargs: -ln_posterior(*args,**kwargs),
+    #                   x0=guess, method='powell', args=args)
+    # best = res.x
 
-    t_forw,t_back = best[-2:]
-    best_w0 = fit_ophdata._mcmc_sample_to_w0(best[:-2])[:,0]
-    t,w1 = potential.integrate_orbit(best_w0, dt=-dt, t1=0., t2=t_back, Integrator=gi.DOPRI853Integrator)
-    t,w2 = potential.integrate_orbit(best_w0, dt=dt, t1=0., t2=t_forw, Integrator=gi.DOPRI853Integrator)
-    w = np.vstack((w1[::-1,0], w2[1:,0]))
-    fig = plot_data_orbit(all_ophdata, orbit_w=w)
-    pl.show()
+    # best_w0 = fit_ophdata._mcmc_sample_to_w0(best[:-2])
+
+    # t_forw,t_back = best[-2:]
+    # best_w0 = fit_ophdata._mcmc_sample_to_w0(best[:-2])[:,0]
+    # t,w1 = potential.integrate_orbit(best_w0, dt=-dt, t1=0., t2=t_back, Integrator=gi.DOPRI853Integrator)
+    # t,w2 = potential.integrate_orbit(best_w0, dt=dt, t1=0., t2=t_forw, Integrator=gi.DOPRI853Integrator)
+    # w = np.vstack((w1[::-1,0], w2[1:,0]))
+    # fig = plot_data_orbit(all_ophdata, orbit_w=w)
+    # pl.show()
 
 def test_convex():
     # check that the likelihood is convex along each 1D slice
     ophdata = OphiuchusData()
-    potential = gp.load("/Users/adrian/projects/ophiuchus/potentials/static_mw.yml", module=op)
+    potential = load_potential("static_mw")
     freeze = dict(phi2_sigma=np.radians(0.1),
                   d_sigma=0.025,
                   vr_sigma=0.002)
+    return
 
+    # TODO: wat do here?
     dt = 0.5
     args = (ophdata, potential, dt, freeze)
     guess = np.array([-2.70234950e-03, 8.44, -3.40761632e-02, 3.15424900e-03, 2.91923172e-01, 2.75, -8.])
