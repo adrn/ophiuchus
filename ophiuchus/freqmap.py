@@ -11,7 +11,6 @@ import numpy as np
 from astropy import log as logger
 import gary.integrate as gi
 import gary.coordinates as gc
-import gary.dynamics as gd
 from superfreq import SuperFreq
 
 # Project
@@ -88,9 +87,9 @@ class Freqmap(OphOrbitGridExperiment):
         # integrate orbit
         logger.debug("Integrating orbit with dt={0}, nsteps={1}".format(dt, nsteps))
         try:
-            t,ws = potential.integrate_orbit(w0.copy(), dt=dt, nsteps=nsteps,
-                                             Integrator=gi.DOPRI853Integrator,
-                                             Integrator_kwargs=dict(atol=1E-11))
+            orbit = potential.integrate_orbit(w0.copy(), dt=dt, nsteps=nsteps,
+                                              Integrator=gi.DOPRI853Integrator,
+                                              Integrator_kwargs=dict(atol=1E-11))
         except RuntimeError: # ODE integration failed
             logger.warning("Orbit integration failed.")
             dEmax = 1E10
@@ -98,7 +97,7 @@ class Freqmap(OphOrbitGridExperiment):
             logger.debug('Orbit integrated successfully, checking energy conservation...')
 
             # check energy conservation for the orbit
-            E = potential.total_energy(ws[:,0,:3].copy(), ws[:,0,3:].copy())
+            E = orbit.energy()
             dE = np.abs(E[1:] - E[0])
             dEmax = dE.max() / np.abs(E[0])
             logger.debug('max(∆E) = {0:.2e}'.format(dEmax))
@@ -112,21 +111,23 @@ class Freqmap(OphOrbitGridExperiment):
         #     return result
 
         # start finding the frequencies -- do first half then second half
-        sf1 = SuperFreq(t[:nsteps//2+1], p=c['hamming_p'])
-        sf2 = SuperFreq(t[nsteps//2:], p=c['hamming_p'])
+        sf1 = SuperFreq(orbit.t[:nsteps//2+1], p=c['hamming_p'])
+        sf2 = SuperFreq(orbit.t[nsteps//2:], p=c['hamming_p'])
 
         # classify orbit full orbit
-        circ = gd.classify_orbit(ws)
+        circ = orbit.circulation()
         is_tube = np.any(circ)
 
         # define slices for first and second parts
         sl1 = slice(None,nsteps//2+1)
         sl2 = slice(nsteps//2,None)
 
+        ws = orbit.w()
         if is_tube and not c['force_cartesian']:
             # first need to flip coordinates so that circulation is around z axis
-            new_ws = gd.align_circulation_with_z(ws, circ)
-            new_ws = gc.cartesian_to_poincare_polar(new_ws)
+            # new_ws = gd.align_circulation_with_z(ws, circ)
+            new_orbit = orbit.align_circulation_with_z()
+            new_ws = gc.cartesian_to_poincare_polar(new_orbit.w())
             fs1 = [(new_ws[sl1,j] + 1j*new_ws[sl1,j+3]) for j in range(3)]
             fs2 = [(new_ws[sl2,j] + 1j*new_ws[sl2,j+3]) for j in range(3)]
 
