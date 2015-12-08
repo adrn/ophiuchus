@@ -39,7 +39,7 @@ default_orbit_style = {
     'marker': None,
     'linestyle': '-',
 }
-def plot_data_orbit(ophdata, orbit_w=None, use_stream_coords=False, lims=None,
+def plot_data_orbit(ophdata, orbit=None, use_stream_coords=False, lims=None,
                     fig=None, data_style=None, orbit_style=None):
     """
     Plot the Ophiuchus stream data and optionally overplot an orbit in either
@@ -48,7 +48,7 @@ def plot_data_orbit(ophdata, orbit_w=None, use_stream_coords=False, lims=None,
     Parameters
     ----------
     ophdata : :class:`ophiuchus.data.OphiuchusData`
-    orbit_w : :class:`numpy.ndarray` (optional)
+    orbit : :class:`gary.dynamics.CartesianOrbit` (optional)
     use_stream_coords : bool (optional)
         Plot things in terms of rotated stream coordinates. Default is False,
         will plot in terms of Galactic coordinates.
@@ -123,7 +123,7 @@ def plot_data_orbit(ophdata, orbit_w=None, use_stream_coords=False, lims=None,
                            ophdata.veloc_err[k].to(this_lims.unit).value, **data_style)
         axes[i+2].set_ylim(*this_lims.value)
 
-    if orbit_w is not None:
+    if orbit is not None:
         # plot the orbit
         if orbit_style is None:
             orbit_style = default_orbit_style
@@ -133,12 +133,9 @@ def plot_data_orbit(ophdata, orbit_w=None, use_stream_coords=False, lims=None,
             if k not in orbit_style:
                 orbit_style[k] = v
 
-        w_coord = galactocentric_frame.realize_frame(coord.CartesianRepresentation(orbit_w.T[:3]*u.kpc))\
-                                      .transform_to(coord.Galactic)
+        w_coord,w_vel = orbit.to_frame(coord.Galactic, vcirc=vcirc, vlsr=vlsr,
+                                       galactocentric_frame=galactocentric_frame)
         w_oph = w_coord.transform_to(Ophiuchus)
-        w_vel = gc.vgal_to_hel(w_coord, orbit_w.T[3:]*u.kpc/u.Myr,
-                               galactocentric_frame=galactocentric_frame,
-                               vcirc=vcirc, vlsr=vlsr)
 
         if use_stream_coords:
             x = w_oph.phi1.wrap_at(180*u.deg).to(xlim.unit).value
@@ -178,9 +175,9 @@ default_stream_style = {
     's': 5.,
     'cmap': 'inferno'
 }
-def plot_data_stream(ophdata, stream_w=None, stream_t=None,
+def plot_data_stream(ophdata, stream=None,
                      use_stream_coords=False, lims=None,
-                     fig=None, data_style=None, stream_style=None):
+                     fig=None, data_style=None, stream_style=None, color_by_time=False):
     """
     Plot the Ophiuchus stream data and optionally overplot a mock stream in either
     galactic or stream coordinates.
@@ -188,7 +185,7 @@ def plot_data_stream(ophdata, stream_w=None, stream_t=None,
     Parameters
     ----------
     ophdata : :class:`ophiuchus.data.OphiuchusData`
-    stream_w : :class:`numpy.ndarray` (optional)
+    stream : :class:`gary.dynamics.CartesianPhaseSpacePosition`, :class:`numpy.ndarray` (optional)
     use_stream_coords : bool (optional)
         Plot things in terms of rotated stream coordinates. Default is False,
         will plot in terms of Galactic coordinates.
@@ -203,6 +200,8 @@ def plot_data_stream(ophdata, stream_w=None, stream_t=None,
     stream_style : dict (optional)
         Dictionary of keyword style arguments passed to
         :func:`matplotlib.scatter` for the mock stream stars.
+    color_by_time : bool (optional)
+        Color the points by the value of time.
 
     Returns
     -------
@@ -263,7 +262,7 @@ def plot_data_stream(ophdata, stream_w=None, stream_t=None,
                            ophdata.veloc_err[k].to(this_lims.unit).value, **data_style)
         axes[i+2].set_ylim(*this_lims.value)
 
-    if stream_w is not None:
+    if stream is not None:
         # plot the orbit
         if stream_style is None:
             stream_style = default_stream_style
@@ -273,12 +272,9 @@ def plot_data_stream(ophdata, stream_w=None, stream_t=None,
             if k not in stream_style:
                 stream_style[k] = v
 
-        w_coord = galactocentric_frame.realize_frame(coord.CartesianRepresentation(stream_w.T[:3]*u.kpc))\
-                                      .transform_to(coord.Galactic)
+        w_coord,w_vel = stream.to_frame(coord.Galactic, vcirc=vcirc, vlsr=vlsr,
+                                        galactocentric_frame=galactocentric_frame)
         w_oph = w_coord.transform_to(Ophiuchus)
-        w_vel = gc.vgal_to_hel(w_coord, stream_w.T[3:]*u.kpc/u.Myr,
-                               galactocentric_frame=galactocentric_frame,
-                               vcirc=vcirc, vlsr=vlsr)
 
         if use_stream_coords:
             x = w_oph.phi1.wrap_at(180*u.deg).to(xlim.unit).value
@@ -287,15 +283,15 @@ def plot_data_stream(ophdata, stream_w=None, stream_t=None,
             x = w_coord.l.to(xlim.unit).value
             y = w_coord.b.to(ylim.unit).value
 
-        if stream_t is not None:
-            stream_style['c'] = stream_t
+        if stream.t is not None and color_by_time:
+            stream_style['c'] = stream.t
 
         pts = axes[0].scatter(x, y, **stream_style)
 
-        if stream_t is not None:
+        if stream.t is not None and color_by_time:
             cbar_ax = fig.add_axes([0.7, 0.25, 0.25, 0.05]) # [left, bottom, width, height
             cb = fig.colorbar(pts, cax=cbar_ax, orientation='horizontal',
-                              ticks=np.arange(int(round(stream_t.min())), 0+1, 1.))
+                              ticks=np.arange(int(round(stream.t.min())), 0+1, 1.))
         # cb.set_clim()
         # np.arange(int(round(stream_t.min())), 0+1, 1.))
 
