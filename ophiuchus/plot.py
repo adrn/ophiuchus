@@ -11,7 +11,6 @@ import astropy.units as u
 import astropy.coordinates as coord
 import matplotlib.pyplot as pl
 import numpy as np
-import gary.coordinates as gc
 
 # Project
 from . import galactocentric_frame, vcirc, vlsr
