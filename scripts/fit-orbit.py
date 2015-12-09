@@ -58,7 +58,7 @@ def main(potential_name, dt, mcmc_steps, results_path=None,
     logger.debug("Output path: {}".format(output_path))
 
     if not os.path.exists(output_path):
-        os.mkdir(output_path)
+        os.makedirs(output_path)
 
     sampler_filename = os.path.join(output_path, "sampler.pickle")
     if os.path.exists(sampler_filename) and overwrite:
