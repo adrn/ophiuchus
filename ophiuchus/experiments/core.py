@@ -30,6 +30,7 @@ from astropy import log as logger
 from gary.util import get_pool
 
 # Project
+from .. import RESULTSPATH
 from .config import ConfigNamespace, save, load
 from .. import potential as op
 
@@ -117,15 +118,16 @@ class OrbitGridExperiment(object):
         save(self.config, config_filename)
 
     @classmethod
-    def from_config(cls, cache_path, config_filename, overwrite=False):
+    def from_config(cls, cache_path, config_filename, potential_name, overwrite=False):
         """
         Read the state from a configuration file.
         """
         if not os.path.exists(config_filename):
-            config_path = os.path.join(cache_path, config_filename)
+            config_path = os.path.abspath(os.path.join(cache_path, config_filename))
         else:
             config_path = config_filename
-        return cls(cache_path=cache_path, overwrite=overwrite, **load(config_path))
+        return cls(cache_path=cache_path, overwrite=overwrite, potential_name=potential_name,
+                   **load(config_path))
 
     def callback(self, tmpfile):
         """
@@ -170,9 +172,7 @@ class OrbitGridExperiment(object):
 
         # unpack input argument dictionary
         potname = self.config.potential_name
-
-        # HACK: this is different from streammorphology
-        potential = op.load_potential(potname)
+        potential = op.load_potential(potname) # HACK: this is different from streammorphology
 
         # read out just this initial condition
         norbits = len(self.w0)
@@ -264,10 +264,9 @@ class ExperimentRunner(object):
 
     parser.add_argument("--mpi", dest="mpi", default=False, action="store_true",
                         help="Use an MPI pool.")
-    parser.add_argument("-p", "--path", dest="path", type=str, required=True,
-                        help="Path to cache everything to (e.g., where to save the "
-                             "initial conditions grid).")
-    parser.add_argument("-c", "--config-filename", dest="config_filename", type=str, default=None,
+    parser.add_argument("--results_path", dest="results_path", type=str, default=None,
+                        help="Top level path to cache everything")
+    parser.add_argument("-c", "--config", dest="config_filename", type=str, default=None,
                         help="Name of the config file (relative to the path).")
 
     parser.add_argument("--index", dest="index", type=str, default=None,
@@ -290,6 +289,17 @@ class ExperimentRunner(object):
                 setattr(args, k, v)
 
         np.random.seed(args.seed)
+
+        # top-level output path for saving (this will create a subdir within output_path)
+        if args.results_path is None:
+            results_path = RESULTSPATH
+        else:
+            results_path = os.path.abspath(os.path.expanduser(args.results_path))
+
+        if results_path is None:
+            raise ValueError("If $PROJECTSPATH is not set, you must provide a path to save "
+                             "the results in with the --results_path argument.")
+        cache_path = os.path.join(results_path, args.potential_name, "mockstream")
 
         if args.config_filename is None:
             raise ValueError("You must define 'config_filename.'")
@@ -327,9 +337,10 @@ class ExperimentRunner(object):
                     index = None
 
         # Instantiate the experiment class
-        with self.ExperimentClass.from_config(cache_path=args.path,
+        with self.ExperimentClass.from_config(cache_path=cache_path,
                                               config_filename=args.config_filename,
-                                              overwrite=args.overwrite) as experiment:
+                                              overwrite=args.overwrite,
+                                              potential_name=args.potential_name) as experiment:
             experiment._ensure_cache_exists()
 
             if index is None:

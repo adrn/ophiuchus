@@ -91,6 +91,8 @@ class MockStreamGrid(OrbitGridExperiment):
             result['success'] = False
             result['error_code'] = 1
             return result
+        except KeyboardInterrupt:
+            raise
         except:
             logger.warning("Unexpected failure!")
             # result['w'] = np.ones((nparticles,6))*np.nan
