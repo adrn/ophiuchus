@@ -7,7 +7,7 @@ from __future__ import division, print_function
 __author__ = "adrn <adrn@astro.columbia.edu>"
 
 import os
-import cPickle as pickle
+from six.moves import cPickle as pickle
 
 # Third-party
 import numpy as np
@@ -80,6 +80,6 @@ class OphOrbitGridExperiment(OrbitGridExperiment):
 
         # cache res into a tempfile, return name of tempfile
         tmpfile = os.path.join(self._tmpdir, "{0}-{1}.pickle".format(self.__class__.__name__, index))
-        with open(tmpfile, 'w') as f:
+        with open(tmpfile, 'wb') as f:
             pickle.dump(res, f)
         return tmpfile
