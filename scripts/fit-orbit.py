@@ -14,7 +14,7 @@ from __future__ import division, print_function
 __author__ = "adrn <adrn@astro.columbia.edu>"
 
 # Standard library
-import cPickle as pickle
+from six.moves import cPickle as pickle
 import os
 import sys
 import time
@@ -66,7 +66,7 @@ def main(top_output_path, potential_name, dt,
     # ------------------------------------------------------------------------
     # read data
     all_ophdata = OphiuchusData()
-    fit_ophdata = OphiuchusData("(source == 'Sesar2015a') | (Name == 'cand9') | (Name == 'cand14')")
+    fit_ophdata = OphiuchusData("(source == b'Sesar2015a') | (Name == b'cand9') | (Name == b'cand14')")
 
     # This is just a good place to initialize from -- I know it sucks to hard-code in
     minimize_p0 = [np.median(fit_ophdata.coord_oph.phi2.decompose(galactic).value)] + \
@@ -94,7 +94,7 @@ def main(top_output_path, potential_name, dt,
 
         if continue_mcmc:
             logger.debug("Loading sampler from: {}".format(sampler_filename))
-            with open(sampler_filename, 'r') as f:
+            with open(sampler_filename, 'rb') as f:
                 sampler = pickle.load(f)
 
             prev_chain = sampler.chain
@@ -167,11 +167,11 @@ def main(top_output_path, potential_name, dt,
             logger.debug("Total nsteps: {}".format(sampler.chain.shape[1]))
 
         logger.debug("Writing sampler to: {}".format(sampler_filename))
-        with open(sampler_filename, 'w') as f:
+        with open(sampler_filename, 'wb') as f:
             pickle.dump(sampler, f)
     else:
         logger.debug("Loading sampler from: {}".format(sampler_filename))
-        with open(sampler_filename, 'r') as f:
+        with open(sampler_filename, 'rb') as f:
             sampler = pickle.load(f)
         ndim = sampler.dim
 
@@ -192,7 +192,7 @@ def main(top_output_path, potential_name, dt,
         else:
             tf,tb = (sample[5], sample[6])
         w = integrate_forward_backward(potential, sample_w0, t_forw=tf, t_back=tb)
-        fig = plot_data_orbit(all_ophdata, orbit_w=w, data_style=dict(marker=None),
+        fig = plot_data_orbit(all_ophdata, orbit=w, data_style=dict(marker=None),
                               orbit_style=dict(color='#2166AC', alpha=0.1), fig=fig)
     fig.savefig(os.path.join(output_path, "orbits.png"), dpi=300)
 

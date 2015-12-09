@@ -13,10 +13,7 @@ uno = u.dimensionless_unscaled
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.stats import norm
-
-from gary.coordinates import vgal_to_hel
 from gary.units import galactic
-from gary.integrate import DOPRI853Integrator
 
 # Project
 from . import galactocentric_frame, vcirc, vlsr
@@ -150,9 +147,6 @@ def ln_likelihood(p, ophdata, potential, dt, freeze=None):
     # unpack the parameters and the frozen parameters
     phi2,d,mul,mub,vr,t_forw,t_back,phi2_sigma,d_sigma,vr_sigma = _unpack(p, freeze)
 
-    # the Galactocentric frame we're using
-    gc_frame = galactocentric_frame
-
     w0 = ophdata._mcmc_sample_to_w0([phi2,d,mul,mub,vr])[:,0]
 
     # HACK: a prior on velocities
@@ -161,7 +155,6 @@ def ln_likelihood(p, ophdata, potential, dt, freeze=None):
 
     # integrate the orbit
     orbit = integrate_forward_backward(potential, w0, t_back=t_back, t_forw=t_forw)
-    w = np.squeeze(orbit.w())
 
     # rotate the model points to stream coordinates
     model_c,model_v = orbit.to_frame(coord.Galactic, vcirc=vcirc, vlsr=vlsr,
