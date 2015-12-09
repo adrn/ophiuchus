@@ -49,13 +49,35 @@ Or, to run using MPI (e.g., on a cluster -- make sure to replace ``<CORES>>``)::
 
 The MCMC walkers should be run for at least 512 steps to ensure convergence.
 
+This script will create cache files in the path::
+
+    /Users/yourname/projects/ophiuchus/results/static_mw/orbitfit
+
 2) Create initial conditions from MCMC samples
 ----------------------------------------------
 
 After running the MCMC orbit fitting, we next need to generate independent samples
 from the chains by thinning the chains. We'll do this using the following script::
 
-    python make-orbitfit-w0.py --potential=static_mw
+    python make-orbitfit-w0.py --potential=static_mw -v
 
 This script reads the sampler file, estimates the autocorrelation time for each
-parameter, then takes every
+parameter, then downsamples the chain to produce approximately independent
+posterior samples. This script will create a ``w0.npy`` file containing the
+initial conditions at::
+
+    /Users/yourname/projects/ophiuchus/results/static_mw/orbitfit/w0.npy
+
+The 0th row in this file will contain orbital initial conditions (in Galactocentric
+cartesian coordinates) for the mean of the posterior samples. This mean is taken in
+the parameters then transformed to cartesian coordinates.
+
+3) Compute Lyapunov exponents for the mean orbit
+------------------------------------------------
+
+With posterior samples representing possible orbits that fit the BHB star data,
+we now compute Lyapunov exponents along the mean orbits in each potential. ::
+
+    python lyapunov.py --potential=static_mw -v
+
+
