@@ -203,8 +203,8 @@ if __name__ == "__main__":
 
     parser.add_argument("--results-path", dest="results_path", default=None,
                         help="Path to save the output file.")
-    parser.add_argument("--potential", dest="potential_name",
-                        required=True, help="Name of the potential YAML file.")
+    parser.add_argument("--potential", dest="potential_name", required=True,
+                        help="Name of the potential YAML file.")
     parser.add_argument("--dt", dest="dt", type=float, default=0.5,
                         help="Integration timestep.")
 
