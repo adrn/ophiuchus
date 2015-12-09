@@ -29,14 +29,15 @@ from gary.units import galactic
 from gary.util import get_pool
 
 # This project
-from ophiuchus import orbitfit
+from ophiuchus import RESULTSPATH
+import ophiuchus.orbitfit as orbitfit
 from ophiuchus.util import integrate_forward_backward
 from ophiuchus.data import OphiuchusData
 from ophiuchus.plot import plot_data_orbit
 import ophiuchus.potential as op
 
-def main(top_output_path, potential_name, dt,
-         nsteps, nwalkers=None, mpi=False, overwrite=False, seed=42, continue_mcmc=False,
+def main(potential_name, dt, mcmc_steps, results_path=None,
+         mcmc_walkers=None, mpi=False, overwrite=False, seed=42, continue_mcmc=False,
          fix_integration_time=False, fix_dispersions=False):
     np.random.seed(seed)
     pool = get_pool(mpi=mpi)
@@ -45,8 +46,15 @@ def main(top_output_path, potential_name, dt,
     potential = op.load_potential(potential_name)
 
     # top-level output path for saving (this will create a subdir within output_path)
-    top_output_path = os.path.abspath(os.path.expanduser(top_output_path))
-    output_path = os.path.join(top_output_path, potential_name)
+    if results_path is None:
+        top_path = RESULTSPATH
+    else:
+        top_path = os.path.abspath(os.path.expanduser(results_path))
+    if top_path is None:
+        raise ValueError("If $PROJECTSPATH is not set, you must provide a path to save "
+                         "the results in with the --results_path argument.")
+
+    output_path = os.path.join(top_path, potential_name, "orbitfit")
     logger.debug("Output path: {}".format(output_path))
 
     if not os.path.exists(output_path):
@@ -58,7 +66,7 @@ def main(top_output_path, potential_name, dt,
         time.sleep(0.5)
         os.remove(sampler_filename)
 
-    minimize_filename = os.path.join(output_path, "minimized.npy")
+    minimize_filename = os.path.join(output_path, "minimized-params.npy")
     if os.path.exists(minimize_filename) and overwrite:
         logger.debug("Overwriting minimize file: {}".format(minimize_filename))
         os.remove(minimize_filename)
@@ -98,10 +106,10 @@ def main(top_output_path, potential_name, dt,
                 sampler = pickle.load(f)
 
             prev_chain = sampler.chain
-            prev_nwalkers,prev_nsteps,ndim = prev_chain.shape
-            if prev_nwalkers != nwalkers:
-                raise ValueError("If continuing walkers, nwalkers ({}) must equal "
-                                 "previous nwalkers ({})".format(nwalkers, prev_nwalkers))
+            prev_mcmc_walkers,prev_mcmc_steps,ndim = prev_chain.shape
+            if prev_mcmc_walkers != mcmc_walkers:
+                raise ValueError("If continuing walkers, mcmc_walkers ({}) must equal "
+                                 "previous mcmc_walkers ({})".format(mcmc_walkers, prev_mcmc_walkers))
             p0 = sampler.chain[:,-1]
             ndim = p0.shape[-1]
             X_minimize = sampler.X_minimize
@@ -126,34 +134,34 @@ def main(top_output_path, potential_name, dt,
             if not fix_dispersions:
                 ndim += 3
 
-            if nwalkers is None:
-                nwalkers = ndim*8
+            if mcmc_walkers is None:
+                mcmc_walkers = ndim*8
 
-            p0 = np.zeros((nwalkers,len(_p0)))
+            p0 = np.zeros((mcmc_walkers,len(_p0)))
             N = np.random.normal
-            p0[:,0] = N(_p0[0], np.radians(0.001), size=nwalkers) # phi2
-            p0[:,1] = N(_p0[1], np.median(fit_ophdata.coord_err['distance'].value)/100., size=nwalkers)
-            p0[:,2] = N(_p0[2], np.median(fit_ophdata.veloc_err['mul'].value)/1000., size=nwalkers)
-            p0[:,3] = N(_p0[3], np.median(fit_ophdata.veloc_err['mub'].value)/1000., size=nwalkers)
-            p0[:,4] = N(_p0[4], np.median(fit_ophdata.veloc_err['vr'].value)/100., size=nwalkers)
+            p0[:,0] = N(_p0[0], np.radians(0.001), size=mcmc_walkers) # phi2
+            p0[:,1] = N(_p0[1], np.median(fit_ophdata.coord_err['distance'].value)/100., size=mcmc_walkers)
+            p0[:,2] = N(_p0[2], np.median(fit_ophdata.veloc_err['mul'].value)/1000., size=mcmc_walkers)
+            p0[:,3] = N(_p0[3], np.median(fit_ophdata.veloc_err['mub'].value)/1000., size=mcmc_walkers)
+            p0[:,4] = N(_p0[4], np.median(fit_ophdata.veloc_err['vr'].value)/100., size=mcmc_walkers)
 
             if not fix_integration_time:
-                p0 = np.hstack((p0, N(_p0[5], 0.01, size=nwalkers)[:,None]))
-                p0 = np.hstack((p0, N(_p0[6], 0.01, size=nwalkers)[:,None]))
+                p0 = np.hstack((p0, N(_p0[5], 0.01, size=mcmc_walkers)[:,None]))
+                p0 = np.hstack((p0, N(_p0[6], 0.01, size=mcmc_walkers)[:,None]))
 
             if not fix_dispersions:
                 for name in ['phi2_sigma', 'd_sigma', 'vr_sigma']:
                     s = freeze.pop(name)
-                    p0 = np.hstack((p0, N(s, s/1000., size=nwalkers)[:,None]))
+                    p0 = np.hstack((p0, N(s, s/1000., size=mcmc_walkers)[:,None]))
 
         # get the integration time from minimization or cached on sampler object
-        sampler = emcee.EnsembleSampler(nwalkers=nwalkers, dim=ndim,
+        sampler = emcee.EnsembleSampler(nwalkers=mcmc_walkers, dim=ndim,
                                         lnpostfn=orbitfit.ln_posterior,
                                         pool=pool, args=args)
 
         logger.info("Starting MCMC sampling...")
         _t1 = time.time()
-        pos,prob,state = sampler.run_mcmc(p0, nsteps)
+        pos,prob,state = sampler.run_mcmc(p0, mcmc_steps)
         pool.close()
         logger.info("...done sampling after {} seconds.".format(time.time()-_t1))
 
@@ -164,7 +172,7 @@ def main(top_output_path, potential_name, dt,
         # collect all chains
         if continue_mcmc:
             sampler._chain = np.hstack((prev_chain, sampler.chain))
-            logger.debug("Total nsteps: {}".format(sampler.chain.shape[1]))
+            logger.debug("Total mcmc_steps: {}".format(sampler.chain.shape[1]))
 
         logger.debug("Writing sampler to: {}".format(sampler_filename))
         with open(sampler_filename, 'wb') as f:
@@ -196,10 +204,6 @@ def main(top_output_path, potential_name, dt,
                               orbit_style=dict(color='#2166AC', alpha=0.1), fig=fig)
     fig.savefig(os.path.join(output_path, "orbits.png"), dpi=300)
 
-    # convert to w0 and save
-    w0 = fit_ophdata._mcmc_sample_to_w0(sampler.flatchain.T).T
-    np.save(os.path.join(output_path, "w0.npy"), w0)
-
 if __name__ == "__main__":
     from argparse import ArgumentParser
     import logging
@@ -213,8 +217,8 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--overwrite", dest="overwrite", default=False,
                         action="store_true", help="Overwrite any existing data.")
 
-    parser.add_argument("--output-path", dest="output_path",
-                        required=True, help="Path to save the output file.")
+    parser.add_argument("--results-path", dest="results_path", default=None,
+                        help="Path to save the output file.")
     parser.add_argument("--potential", dest="potential_name",
                         required=True, help="Name of the potential YAML file.")
     parser.add_argument("--dt", dest="dt", type=float, default=0.5,
@@ -223,9 +227,9 @@ if __name__ == "__main__":
     # emcee
     parser.add_argument("--mpi", dest="mpi", default=False, action="store_true",
                         help="Run with MPI.")
-    parser.add_argument("--nwalkers", dest="nwalkers", type=int, default=None,
+    parser.add_argument("--mcmc_walkers", dest="mcmc_walkers", type=int, default=None,
                         help="Number of walkers.")
-    parser.add_argument("--nsteps", dest="nsteps", type=int, required=True,
+    parser.add_argument("--mcmc_steps", dest="mcmc_steps", type=int, required=True,
                         help="Number of steps to take MCMC.")
     parser.add_argument("--continue", dest="continue_mcmc", default=False,
                         action="store_true", help="Continue sampling from where the sampler left off.")
@@ -244,9 +248,9 @@ if __name__ == "__main__":
     else:
         logger.setLevel(logging.INFO)
 
-    main(args.output_path, args.potential_name,
-         dt=args.dt, nsteps=args.nsteps,
-         nwalkers=args.nwalkers, mpi=args.mpi, overwrite=args.overwrite,
+    main(args.potential_name, dt=args.dt, mcmc_steps=args.mcmc_steps,
+         results_path=args.results_path,
+         mcmc_walkers=args.mcmc_walkers, mpi=args.mpi, overwrite=args.overwrite,
          continue_mcmc=args.continue_mcmc,
          fix_integration_time=args.fixtime, fix_dispersions=args.fixdisp)
 
