@@ -4,7 +4,7 @@
 
 Call like:
 TODO
-python fitorbit.py --output-path=../output/orbitfits/ --potential=barred_mw \
+python fit-orbit.py --output-path=../output/orbitfits/ --potential=barred_mw \
 -v --nsteps=256 --nwalkers=64 --mpi  --fixtime
 
 """
