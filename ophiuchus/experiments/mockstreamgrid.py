@@ -11,14 +11,13 @@ from astropy import log as logger
 import numpy as np
 import gary.integrate as gi
 from gary.dynamics.mockstream import dissolved_fardal_stream
-from scipy.signal import argrelmin
 
 # Project
-from .ophorbitgridexperiment import OphOrbitGridExperiment
+from .core import OrbitGridExperiment
 
 __all__ = ['MockStreamGrid']
 
-class MockStreamGrid(OphOrbitGridExperiment):
+class MockStreamGrid(OrbitGridExperiment):
     # failure error codes
     error_codes = {
         1: "Failed to integrate orbits",

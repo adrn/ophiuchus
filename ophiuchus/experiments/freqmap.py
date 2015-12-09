@@ -15,11 +15,11 @@ from superfreq import SuperFreq
 
 # Project
 from streammorphology.util import estimate_dt_nsteps
-from .ophorbitgridexperiment import OphOrbitGridExperiment
+from .core import OrbitGridExperiment
 
 __all__ = ['Freqmap']
 
-class Freqmap(OphOrbitGridExperiment):
+class Freqmap(OrbitGridExperiment):
     # failure error codes
     error_codes = {
         1: "Failed to integrate orbit or estimate dt, nsteps.",
