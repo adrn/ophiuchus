@@ -1,4 +1,4 @@
-# This was solved for using scripts/find-rotation-matrix.py -- this rotates from Galactic to Ophiuchus coordinates
+# This was solved for using scripts/private/find-rotation-matrix.py
 0.849220965543746    0.070012790407662    0.523375544767120
 -0.270436536410978   -0.793642598521030    0.544972940233568
 0.453528203593758   -0.604342316069394   -0.655043917270361
