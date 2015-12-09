@@ -19,6 +19,22 @@ if not _ASTROPY_SETUP_:
     vcirc = 220.*u.km/u.s
     vlsr = [-11.1, 24, 7.25]*u.km/u.s
 
-    del coord, u
+    # read from environment variable
+    import os
+    PROJECTSPATH = os.environ.get('PROJECTSPATH', None)
+    if PROJECTSPATH is not None:
+        RESULTSPATH = os.path.join(PROJECTSPATH, 'ophiuchus', 'results')
+        if not os.path.exists(RESULTSPATH):
+            os.mkdir(RESULTSPATH)
+    else:
+        RESULTSPATH = None
 
-    from .util import *
+    del coord, u, os
+
+    from . import coordinates
+    from . import data
+    from . import experiments
+    from . import orbitfit
+    from . import plot
+    from . import potential
+    from . import util
