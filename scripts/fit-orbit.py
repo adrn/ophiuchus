@@ -190,20 +190,6 @@ def main(potential_name, dt, mcmc_steps, results_path=None,
     fig.tight_layout()
     fig.savefig(os.path.join(output_path, "walkers.png"), dpi=300)
 
-    # plot orbit fits
-    ix = np.random.randint(len(sampler.flatchain), size=64)
-    fig = plot_data_orbit(all_ophdata)
-    for sample in sampler.flatchain[ix]:
-        sample_w0 = fit_ophdata._mcmc_sample_to_w0(sample[:5])[:,0]
-        if fix_integration_time:
-            tf,tb = (3.,-3.)
-        else:
-            tf,tb = (sample[5], sample[6])
-        w = integrate_forward_backward(potential, sample_w0, t_forw=tf, t_back=tb)
-        fig = plot_data_orbit(all_ophdata, orbit=w, data_style=dict(marker=None),
-                              orbit_style=dict(color='#2166AC', alpha=0.1), fig=fig)
-    fig.savefig(os.path.join(output_path, "orbits.png"), dpi=300)
-
 if __name__ == "__main__":
     from argparse import ArgumentParser
     import logging

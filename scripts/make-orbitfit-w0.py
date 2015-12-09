@@ -1,13 +1,6 @@
 # coding: utf-8
 
-""" Make w0.npy files from orbitfit results
-
-Call like:
-TODO
-python fit-orbit.py --output-path=../output/orbitfits/ --potential=barred_mw \
--v --nsteps=256 --nwalkers=64 --mpi  --fixtime
-
-"""
+""" Make w0.npy files from orbitfit results """
 
 from __future__ import division, print_function
 
@@ -23,69 +16,75 @@ import numpy as np
 from six.moves import cPickle as pickle
 
 # This project
+from ophiuchus import RESULTSPATH
 from ophiuchus.data import OphiuchusData
 from ophiuchus.util import integrate_forward_backward
 from ophiuchus.plot import plot_data_orbit
 import ophiuchus.potential as op
 
-def main(top_output_path, split_ix=256, potential_name=None, overwrite=False):
+def main(potential_name, results_path=None, split_ix=None, overwrite=False):
     all_ophdata = OphiuchusData()
 
-    # top-level output path where orbitfit saved
-    top_output_path = os.path.abspath(os.path.expanduser(top_output_path))
-    output_path = os.path.join(top_output_path, "orbitfit")
-
-    if potential_name is not None:
-        paths = [potential_name]
+    # top-level output path for saving (this will create a subdir within output_path)
+    if results_path is None:
+        top_path = RESULTSPATH
     else:
-        paths = os.listdir(output_path)
+        top_path = os.path.abspath(os.path.expanduser(results_path))
 
-    for potential_name in paths:
-        if potential_name.startswith("."): continue
+    if top_path is None:
+        raise ValueError("If $PROJECTSPATH is not set, you must provide a path to save "
+                         "the results in with the --results_path argument.")
 
-        this_path = os.path.join(output_path, potential_name)
-        w0_filename = os.path.join(this_path, "w0.npy")
-        if os.path.exists(w0_filename) and overwrite:
-            os.remove(w0_filename)
+    output_path = os.path.join(top_path, potential_name, "orbitfit")
+    logger.debug("Output path: {}".format(output_path))
 
-        if os.path.exists(w0_filename):
-            logger.debug("File {} exists".format(w0_filename))
-            continue
+    w0_filename = os.path.join(output_path, "w0.npy")
+    if os.path.exists(w0_filename) and overwrite:
+        os.remove(w0_filename)
 
-        with open(os.path.join(this_path, "sampler.pickle"), 'rb') as f:
-            sampler = pickle.load(f)
+    if os.path.exists(w0_filename):
+        logger.debug("File {} exists".format(w0_filename))
+        continue
 
-        # measure the autocorrelation time for each parameter
-        taus = []
-        for i in range(sampler.chain.shape[-1]):
-            tau,_,_ = acor.acor(sampler.chain[:,split_ix:,i])
-            taus.append(tau)
-        logger.debug("Autocorrelation times: {}".format(taus))
-        every = int(2*max(taus)) # take every XX step
+    with open(os.path.join(output_path, "sampler.pickle"), 'rb') as f:
+        sampler = pickle.load(f)
 
-        _x0 = np.vstack(sampler.chain[:,split_ix::every,:5])
-        np.random.shuffle(_x0)
-        w0 = all_ophdata._mcmc_sample_to_w0(_x0.T).T
+    # default is to split in half
+    if split_ix is None:
+        split_ix = sampler.chain.shape[1] // 2
 
-        mean_w0 = all_ophdata._mcmc_sample_to_w0(np.mean(_x0, axis=0)).T
-        w0 = np.vstack((mean_w0, w0))
+    # measure the autocorrelation time for each parameter
+    taus = []
+    for i in range(sampler.chain.shape[-1]):
+        tau,_,_ = acor.acor(sampler.chain[:,split_ix:,i])
+        taus.append(tau)
+    logger.debug("Autocorrelation times: {}".format(taus))
+    every = int(2*max(taus)) # take every XX step
 
-        logger.info("{} initial conditions after thinning chains".format(w0.shape[0]))
+    _x0 = np.vstack(sampler.chain[:,split_ix::every,:5])
+    np.random.shuffle(_x0)
+    w0 = all_ophdata._mcmc_sample_to_w0(_x0.T).T
 
-        # convert to w0 and save
-        np.save(w0_filename, w0)
+    mean_w0 = all_ophdata._mcmc_sample_to_w0(np.mean(_x0, axis=0)).T
+    w0 = np.vstack((mean_w0, w0))
 
-        potential = op.load_potential(potential_name)
+    logger.info("{} initial conditions after thinning chains".format(w0.shape[0]))
 
-        ix = np.random.randint(len(sampler.flatchain), size=64)
-        fig = plot_data_orbit(all_ophdata)
-        for sample in sampler.flatchain[ix]:
-            sample_w0 = all_ophdata._mcmc_sample_to_w0(sample[:5])[:,0]
-            tf,tb = (3.,-3.)
-            w = integrate_forward_backward(potential, sample_w0, t_forw=tf, t_back=tb)
-            fig = plot_data_orbit(all_ophdata, orbit_w=w, data_style=dict(marker=None),
-                                  orbit_style=dict(color='#2166AC', alpha=0.1), fig=fig)
-        fig.savefig(os.path.join(this_path, "orbits-split.png"), dpi=300)
+    # convert to w0 and save
+    np.save(w0_filename, w0)
+
+    potential = op.load_potential(potential_name)
+
+    # plot orbit fits
+    ix = np.random.randint(len(sampler.flatchain), size=64)
+    fig = plot_data_orbit(all_ophdata)
+    for sample in sampler.flatchain[ix]:
+        sample_w0 = all_ophdata._mcmc_sample_to_w0(sample[:5])[:,0]
+        tf,tb = (5.,-5.)
+        w = integrate_forward_backward(potential, sample_w0, t_forw=tf, t_back=tb)
+        fig = plot_data_orbit(all_ophdata, orbit_w=w, data_style=dict(marker=None),
+                              orbit_style=dict(color='#2166AC', alpha=0.1), fig=fig)
+    fig.savefig(os.path.join(output_path, "orbits.png"), dpi=300)
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
@@ -100,7 +99,7 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--overwrite", dest="overwrite", default=False,
                         action="store_true", help="Overwrite any existing data.")
 
-    parser.add_argument("--output-path", dest="output_path",
+    parser.add_argument("--results-path", dest="results_path",
                         required=True, help="Path to save the output file.")
     parser.add_argument("--potential", dest="potential_name", default=None,
                         help="Name of the potential YAML file.")
@@ -116,5 +115,5 @@ if __name__ == "__main__":
     else:
         logger.setLevel(logging.INFO)
 
-    main(args.output_path, potential_name=args.potential_name,
+    main(potential_name=args.potential_name, results_path=args.results_path,
          split_ix=args.ix, overwrite=args.overwrite)
