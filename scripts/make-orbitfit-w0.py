@@ -10,7 +10,7 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 import os
 
 # Third-party
-import acor
+import emcee.autocorr as acor
 from astropy import log as logger
 import numpy as np
 from six.moves import cPickle as pickle
@@ -44,7 +44,7 @@ def main(potential_name, results_path=None, split_ix=None, overwrite=False):
 
     if os.path.exists(w0_filename):
         logger.debug("File {} exists".format(w0_filename))
-        continue
+        return
 
     with open(os.path.join(output_path, "sampler.pickle"), 'rb') as f:
         sampler = pickle.load(f)
@@ -54,12 +54,12 @@ def main(potential_name, results_path=None, split_ix=None, overwrite=False):
         split_ix = sampler.chain.shape[1] // 2
 
     # measure the autocorrelation time for each parameter
-    taus = []
-    for i in range(sampler.chain.shape[-1]):
-        tau,_,_ = acor.acor(sampler.chain[:,split_ix:,i])
-        taus.append(tau)
-    logger.debug("Autocorrelation times: {}".format(taus))
-    every = int(2*max(taus)) # take every XX step
+    every = int(np.min(acor.integrated_time(sampler.chain[:,split_ix:], axis=0)))
+    logger.debug("Taking every {} sample".format(every))
+
+    if every == 0:
+        logger.warning("Autocorrelation time is too long! Run your MCMC for longer...")
+        raise ValueError("Autocorrelation time is too long to thin chains")
 
     _x0 = np.vstack(sampler.chain[:,split_ix::every,:5])
     np.random.shuffle(_x0)
@@ -82,7 +82,7 @@ def main(potential_name, results_path=None, split_ix=None, overwrite=False):
         sample_w0 = all_ophdata._mcmc_sample_to_w0(sample[:5])[:,0]
         tf,tb = (5.,-5.)
         w = integrate_forward_backward(potential, sample_w0, t_forw=tf, t_back=tb)
-        fig = plot_data_orbit(all_ophdata, orbit_w=w, data_style=dict(marker=None),
+        fig = plot_data_orbit(all_ophdata, orbit=w, data_style=dict(marker=None),
                               orbit_style=dict(color='#2166AC', alpha=0.1), fig=fig)
     fig.savefig(os.path.join(output_path, "orbits.png"), dpi=300)
 
@@ -99,8 +99,8 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--overwrite", dest="overwrite", default=False,
                         action="store_true", help="Overwrite any existing data.")
 
-    parser.add_argument("--results-path", dest="results_path",
-                        required=True, help="Path to save the output file.")
+    parser.add_argument("--results-path", dest="results_path", default=None,
+                        help="Path to save the output file.")
     parser.add_argument("--potential", dest="potential_name", default=None,
                         help="Name of the potential YAML file.")
     parser.add_argument("--ix", dest="ix", type=int, default=None,

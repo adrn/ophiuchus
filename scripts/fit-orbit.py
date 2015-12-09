@@ -31,9 +31,7 @@ from gary.util import get_pool
 # This project
 from ophiuchus import RESULTSPATH
 import ophiuchus.orbitfit as orbitfit
-from ophiuchus.util import integrate_forward_backward
 from ophiuchus.data import OphiuchusData
-from ophiuchus.plot import plot_data_orbit
 import ophiuchus.potential as op
 
 def main(potential_name, dt, mcmc_steps, results_path=None,
