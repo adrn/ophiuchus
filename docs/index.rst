@@ -76,8 +76,29 @@ the parameters then transformed to cartesian coordinates.
 ------------------------------------------------
 
 With posterior samples representing possible orbits that fit the BHB star data,
-we now compute Lyapunov exponents along the mean orbits in each potential. ::
+we now compute Lyapunov exponents along the mean orbits in each potential.::
 
     python lyapunov.py --potential=static_mw -v
 
+4) Generate mock stellar streams along orbits
+---------------------------------------------
 
+We're now going to generate mock stellar streams along orbits sampled from the
+posterior and caced to the ``w0.npy`` file above. To do this, we run::
+
+    python mockstreamgrid.py --potential=static_mw -c ../results/global_mockstream.cfg
+
+This uses the global configuration stored in ``ophiuchus/results/global_mockstream.cfg``.
+To control the parameters of the run such as the integration time, progenitor mass, etc.,
+copy this configuration file to the potential results path -- in this case::
+
+    cp ../results/global_mockstream.cfg ../results/static_mw/mockstream/custom.cfg
+
+and edit the configuration file with whatever values you want. Then, instead call
+the script with::
+
+    python mockstreamgrid.py --potential=static_mw -c custom.cfg
+
+To run with MPI (e.g., on a cluster)::
+
+    mpiexec -n <CORES> python mockstreamgrid.py --potential=static_mw -c ../results/global_mockstream.cfg --mpi
