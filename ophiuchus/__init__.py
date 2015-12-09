@@ -23,6 +23,7 @@ if not _ASTROPY_SETUP_:
     import os
     PROJECTSPATH = os.environ.get('PROJECTSPATH', None)
     if PROJECTSPATH is not None:
+        PROJECTSPATH = os.path.abspath(os.path.expanduser(PROJECTSPATH))
         RESULTSPATH = os.path.join(PROJECTSPATH, 'ophiuchus', 'results')
         if not os.path.exists(RESULTSPATH):
             os.mkdir(RESULTSPATH)
