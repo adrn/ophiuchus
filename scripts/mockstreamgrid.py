@@ -8,8 +8,10 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 import sys
 
 # project
-from streammorphology import ExperimentRunner
-from ophiuchus.mockstreamgrid import MockStreamGrid
+from ophiuchus.experiments import MockStreamGrid, ExperimentRunner
+
+ExperimentRunner.parser.add_argument("--potential", dest="potential_name", required=True,
+                                     help="Name of the potential YAML file.")
 
 runner = ExperimentRunner(ExperimentClass=MockStreamGrid)
 runner.run()

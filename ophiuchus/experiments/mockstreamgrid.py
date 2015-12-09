@@ -27,12 +27,12 @@ class MockStreamGrid(OrbitGridExperiment):
 
     _run_kwargs = ['integration_time', 'dt', 'release_every', 'w0_path', 'norbits', 'potential_name', 'progenitor_mass']
     config_defaults = dict(
-        integration_time=8192., # Total time to integrate for in Myr
+        integration_time=None, # Total time to integrate for in Myr
         dt=1., # timestep
-        release_every=1, # release a test particle every N timesteps
+        release_every=None, # release a test particle every N timesteps
         w0_filename='w0.npy', # Name of the initial conditions file
         w0_path='.', # path to initial conditions file, relative to cache path
-        norbits=128, # number of orbits to read from the w0 file
+        norbits=None, # number of orbits to read from the w0 file
         potential_name=None,
         progenitor_mass=None, # mass of the progenitor system
         cache_filename='mockstreamgrid.npy' # Name of the cache file
@@ -100,7 +100,6 @@ class MockStreamGrid(OrbitGridExperiment):
             result['error_code'] = 2
             return result
         allw = np.vstack((prog.w(potential.units)[:,-1].T, stream.w(potential.units).T))
-        print(allw.shape)
 
         result['w'] = allw
         result['success'] = True
