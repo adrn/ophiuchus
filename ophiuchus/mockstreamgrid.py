@@ -10,11 +10,11 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 from astropy import log as logger
 import numpy as np
 import gary.integrate as gi
+from gary.dynamics.mockstream import dissolved_fardal_stream
 from scipy.signal import argrelmin
 
 # Project
 from .ophorbitgridexperiment import OphOrbitGridExperiment
-from .mockstream import dissolved_stream
 
 __all__ = ['MockStreamGrid']
 
@@ -26,7 +26,7 @@ class MockStreamGrid(OphOrbitGridExperiment):
         3: "Failed to integrate progenitor orbit"
     }
 
-    _run_kwargs = ['integration_time', 'dt', 'release_every', 'w0_path', 'norbits', 'potential_name']
+    _run_kwargs = ['integration_time', 'dt', 'release_every', 'w0_path', 'norbits', 'potential_name', 'progenitor_mass']
     config_defaults = dict(
         integration_time=8192., # Total time to integrate for in Myr
         dt=1., # timestep
@@ -35,6 +35,7 @@ class MockStreamGrid(OphOrbitGridExperiment):
         w0_path='.', # path to initial conditions file, relative to cache path
         norbits=128, # number of orbits to read from the w0 file
         potential_name=None,
+        progenitor_mass=None, # mass of the progenitor system
         cache_filename='mockstreamgrid.npy' # Name of the cache file
     )
 
@@ -51,7 +52,8 @@ class MockStreamGrid(OphOrbitGridExperiment):
             ('release_every','i8'),
             ('w','f8',(self._nparticles+1,6)),
             ('success','b1'),
-            ('error_code','i8') # if not successful, why did it fail? see above
+            ('error_code','i8'), # if not successful, why did it fail? see above
+            ('progenitor_mass','f8')
         ]
         return dt
 
@@ -64,69 +66,42 @@ class MockStreamGrid(OphOrbitGridExperiment):
             else:
                 c[k] = kwargs[k]
 
-        dt = c['dt']
-        nsteps = int(c['integration_time'] / c['dt'])
-        nparticles = nsteps // c['release_every'] * 2
-
         # return dict
         result = dict()
 
-        logger.debug("Integrating progenitor orbit...")
-        try:
-            # integrate orbit back, then forward again
-            torig,w = potential.integrate_orbit(w0.copy(), dt=-dt, nsteps=nsteps, Integrator=gi.DOPRI853Integrator)
-            t,w = potential.integrate_orbit(w[-1], dt=dt, t1=torig[-1], nsteps=nsteps, Integrator=gi.DOPRI853Integrator)
-        except RuntimeError:
-            logger.warning("Failed to integrate progenitor orbit.")
-            result['w'] = np.ones((nparticles,6))*np.nan
-            result['success'] = False
-            result['error_code'] = 3
-            return result
-        except:
-            logger.warning("Unexpected failure!")
-            result['w'] = np.ones((nparticles,6))*np.nan
-            result['success'] = False
-            result['error_code'] = 2
-            return result
-
-        ww = w[:,0].copy()
-        logger.debug("...finished integrating progenitor orbit.")
-
         # constant + disruption
-        prog_mass = np.zeros_like(t) + 1E4
-        rr = np.sqrt(np.sum(ww.T[:3]**2,axis=0))
-        peri_ix, = argrelmin(rr)
-        disrupt_idx = peri_ix[-1]
-        if np.abs(peri_ix[-1] - t.size) < 50:
-            disrupt_idx = peri_ix[-2]
+        # prog_mass = np.zeros_like(t) + 1E4
+        # rr = np.sqrt(np.sum(ww.T[:3]**2,axis=0))
+        # peri_ix, = argrelmin(rr)
+        # disrupt_idx = peri_ix[-1]
+        # if np.abs(peri_ix[-1] - t.size) < 50:
+        #     disrupt_idx = peri_ix[-2]
 
+        t_f = result['integration_time'] = -np.abs(c['integration_time'])
+        mass = result['progenitor_mass'] = float(c['progenitor_mass'])
+        dt = result['dt'] = c['dt']
+        every = result['release_every'] = int(c['release_every'])
         try:
-            # stream = apw_stream(potential.c_instance, t, ww,
-            #                     release_every=c['release_every'], G=potential.G,
-            #                     prog_mass=prog_mass)
-            stream = dissolved_stream(potential.c_instance, t, ww,
-                                      release_every=c['release_every'], G=potential.G,
-                                      prog_mass=prog_mass,
-                                      disrupt_idx=disrupt_idx)
+            prog,stream = dissolved_fardal_stream(potential, np.ascontiguousarray(w0.copy()),
+                                                  t_f=t_f, dt=dt, release_every=every,
+                                                  prog_mass=mass, Integrator=gi.DOPRI853Integrator,
+                                                  t_disrupt=t_f) # start disrupted!
         except RuntimeError:
             logger.warning("Failed to integrate orbits")
-            result['w'] = np.ones((nparticles,6))*np.nan
+            # result['w'] = np.ones((nparticles,6))*np.nan
             result['success'] = False
             result['error_code'] = 1
             return result
         except:
             logger.warning("Unexpected failure!")
-            result['w'] = np.ones((nparticles,6))*np.nan
+            # result['w'] = np.ones((nparticles,6))*np.nan
             result['success'] = False
             result['error_code'] = 2
             return result
-
-        allw = np.vstack((ww[-1], stream))
+        allw = np.vstack((prog.w(potential.units)[:,-1].T, stream.w(potential.units).T))
+        print(allw.shape)
 
         result['w'] = allw
-        result['dt'] = float(dt)
-        result['integration_time'] = c['integration_time']
-        result['release_every'] = c['release_every']
         result['success'] = True
         result['error_code'] = 0
         return result
