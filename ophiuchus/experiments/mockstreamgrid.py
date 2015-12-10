@@ -85,7 +85,7 @@ class MockStreamGrid(OrbitGridExperiment):
             prog,stream = ophiuchus_stream(potential, np.ascontiguousarray(w0.copy()),
                                            t_f=t_f, dt=dt, release_every=every,
                                            prog_mass=mass, Integrator=gi.DOPRI853Integrator,
-                                           t_disrupt=-250)
+                                           t_disrupt=-300)
                                            # t_disrupt=t_f) # start disrupted!
         except RuntimeError:
             logger.warning("Failed to integrate orbits")

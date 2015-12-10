@@ -8,6 +8,7 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 import os
 
 # Third-party
+import astropy.units as u
 from astropy import log as logger
 import matplotlib.pyplot as pl
 import numpy as np
@@ -78,6 +79,27 @@ def main(potential_name, n, config_filename, results_path=None, overwrite=False)
         filename = os.path.join(plot_path, 'transp_{}.png'.format(i))
         fig = plot_data_stream(ophdata, stream=stream,
                                stream_style=dict(s=3, color='#555555', alpha=0.15))
+        fig.savefig(filename, dpi=300)
+        pl.close(fig)
+
+        # also plot a zoom in
+        filename = os.path.join(plot_path, 'zoom_{}.png'.format(i))
+        zoom_lims = {
+            'l': [6.,3.7]*u.deg,
+            'b': [30.5,32.2]*u.deg,
+            'distance': [7.7,9.1]*u.kpc,
+            'vr': [280,300]*u.km/u.s
+        }
+        fig = plot_data_stream(ophdata, stream=stream, lims=zoom_lims,
+                               stream_style=dict(s=3, color='#555555', alpha=0.15))
+        fig.savefig(filename, dpi=300)
+        pl.close(fig)
+
+        # also plot xyz
+        filename = os.path.join(plot_path, 'xyz_{}.png'.format(i))
+        fig = stream.plot(color='#555555', alpha=0.15, subplots_kwargs=dict(sharex=True, sharey=True))
+        fig.axes[0].set_xlim(-15,15)
+        fig.axes[0].set_ylim(-15,15)
         fig.savefig(filename, dpi=300)
         pl.close(fig)
 
