@@ -38,8 +38,7 @@ def main(potential_name, results_path=None, overwrite=False):
 
     T = 512. # The orbits have periods ~500 Myr
     dt = T / 512 # 512 steps per orbit
-    # nsteps = int(16384 * 512) # 16384 orbital periods
-    nsteps = int(64 * 512) # TESTING HACK HACK HACK
+    nsteps = int(16384 * 512) # 16384 orbital periods
 
     output_file = os.path.join(output_path, 'lyap.pickle')
     if os.path.exists(output_file) and overwrite:
