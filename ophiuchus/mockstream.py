@@ -68,7 +68,7 @@ def ophiuchus_stream(potential, w0, prog_mass, t_disrupt, t_f, dt=1., t_0=0.,
     k_mean = np.zeros((nsteps,6))
     k_disp = np.zeros((nsteps,6))
 
-    k_mean[:,0] = 2. # R
+    k_mean[:,0] = 1. # R
     k_mean[s,0] = 0.
     k_disp[:,0] = 0.5
 
