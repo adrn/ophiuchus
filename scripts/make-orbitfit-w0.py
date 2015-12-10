@@ -54,10 +54,12 @@ def main(potential_name, results_path=None, split_ix=None, overwrite=False):
         split_ix = sampler.chain.shape[1] // 2
 
     # measure the autocorrelation time for each parameter
-    every = int(np.min(acor.integrated_time(sampler.chain[:,split_ix:], axis=0)))
+    tau = np.median(acor.integrated_time(np.mean(sampler.chain[:,split_ix:], axis=0)))
+    logger.debug("Autocorrelation time: {:.1f}".format(tau))
+    every = int(tau)
     logger.debug("Taking every {} sample".format(every))
 
-    if every == 0:
+    if every == 0 or tau > sampler.chain.shape[1]:
         logger.warning("Autocorrelation time is too long! Run your MCMC for longer...")
         raise ValueError("Autocorrelation time is too long to thin chains")
 
