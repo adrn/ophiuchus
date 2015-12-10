@@ -10,9 +10,10 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 from astropy import log as logger
 import numpy as np
 import gary.integrate as gi
-from gary.dynamics.mockstream import dissolved_fardal_stream
+# from gary.dynamics.mockstream import dissolved_fardal_stream
 
 # Project
+from ..mockstream import ophiuchus_stream
 from .core import OrbitGridExperiment
 
 __all__ = ['MockStreamGrid']
@@ -81,10 +82,11 @@ class MockStreamGrid(OrbitGridExperiment):
         dt = result['dt'] = c['dt']
         every = result['release_every'] = int(c['release_every'])
         try:
-            prog,stream = dissolved_fardal_stream(potential, np.ascontiguousarray(w0.copy()),
-                                                  t_f=t_f, dt=dt, release_every=every,
-                                                  prog_mass=mass, Integrator=gi.DOPRI853Integrator,
-                                                  t_disrupt=t_f) # start disrupted!
+            prog,stream = ophiuchus_stream(potential, np.ascontiguousarray(w0.copy()),
+                                           t_f=t_f, dt=dt, release_every=every,
+                                           prog_mass=mass, Integrator=gi.DOPRI853Integrator,
+                                           t_disrupt=-250)
+                                           # t_disrupt=t_f) # start disrupted!
         except RuntimeError:
             logger.warning("Failed to integrate orbits")
             # result['w'] = np.ones((nparticles,6))*np.nan
