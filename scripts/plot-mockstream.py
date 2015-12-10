@@ -11,15 +11,32 @@ import os
 from astropy import log as logger
 import matplotlib.pyplot as pl
 import numpy as np
+from gary.dynamics import CartesianPhaseSpacePosition as CPSP
 
 # This project
+from ophiuchus import RESULTSPATH
+import ophiuchus.potential as op
 from ophiuchus.data import OphiuchusData
 from ophiuchus.plot import plot_data_stream
-from ophiuchus.mockstreamgrid import MockStreamGrid
+from ophiuchus.experiments import MockStreamGrid
 
-def main(path, n):
+def main(potential_name, n, config_filename, results_path=None, overwrite=False):
+    # top-level output path for saving (this will create a subdir within output_path)
+    if results_path is None:
+        top_path = RESULTSPATH
+    else:
+        top_path = os.path.abspath(os.path.expanduser(results_path))
+
+    if top_path is None:
+        raise ValueError("If $PROJECTSPATH is not set, you must provide a path to save "
+                         "the results in with the --results_path argument.")
+
+    output_path = os.path.join(top_path, potential_name, "mockstream")
+    logger.debug("Reading path: {}".format(output_path))
+
     # load mock streams
-    grid = MockStreamGrid.from_config(os.path.abspath(path), config_filename="mockstreamgrid.cfg")
+    grid = MockStreamGrid.from_config(output_path, config_filename=config_filename,
+                                      potential_name=potential_name)
     grid_d = grid.read_cache()[:n]
     streams = grid_d['w']
     nsuccess = grid_d['success'].sum()
@@ -30,8 +47,10 @@ def main(path, n):
     if nsuccess == 0:
         return
 
+    pot = op.load_potential(potential_name)
+
     # where to save the plots
-    plot_path = os.path.join(path, "plots")
+    plot_path = os.path.join(output_path, "plots")
     if not os.path.exists(plot_path):
         os.mkdir(plot_path)
 
@@ -40,16 +59,18 @@ def main(path, n):
 
     idx, = np.where(grid_d['success'])
     for i in idx:
-        filename = os.path.join(plot_path, '{}.png'.format(i))
-        if os.path.exists(filename):
+        filename = os.path.join(plot_path, 'hel_{}.png'.format(i))
+        if os.path.exists(filename) and not overwrite:
             logger.debug("Stream {} plot exists".format(i))
             continue
 
         t = (np.arange(streams[i].shape[0])/2.).astype(int) / 1000. * release_every[i] * dt[i] # Gyr
         t = t - t.max()
         logger.debug("Plotting stream {}".format(i))
-        fig = plot_data_stream(ophdata, stream_w=streams[i],
-                               stream_t=t, stream_style=dict(s=7, alpha=0.75, cmap='plasma'))
+
+        stream = CPSP.from_w(streams[i].T, units=pot.units)
+        fig = plot_data_stream(ophdata, stream=stream,
+                               stream_style=dict(s=7, c=t, alpha=0.75, cmap='plasma'))
         fig.savefig(filename, dpi=300)
         pl.close(fig)
 
@@ -63,8 +84,15 @@ if __name__ == "__main__":
                         help="Be chatty! (default = False)")
     parser.add_argument("-q", "--quiet", action="store_true", dest="quiet",
                         default=False, help="Be quiet! (default = False)")
-    parser.add_argument("--path", dest="path",
-                        required=True, help="Path to the output file.")
+    parser.add_argument("-o", "--overwrite", dest="overwrite", default=False,
+                        action="store_true", help="Overwrite any existing data.")
+
+    parser.add_argument("--potential", dest="potential_name", required=True,
+                        help="Name of the potential YAML file.")
+    parser.add_argument("--results_path", dest="results_path", type=str, default=None,
+                        help="Top level path to cache everything")
+    parser.add_argument("-c", "--config", dest="config_filename", type=str, required=True,
+                        help="Name of the config file (relative to the path).")
     parser.add_argument("-n", dest="n", default=128, type=int,
                         help="Number to plot")
 
@@ -77,4 +105,5 @@ if __name__ == "__main__":
     else:
         logger.setLevel(logging.INFO)
 
-    main(args.path, args.n)
+    main(potential_name=args.potential_name, config_filename=args.config_filename,
+         n=args.n, results_path=args.results_path, overwrite=args.overwrite)

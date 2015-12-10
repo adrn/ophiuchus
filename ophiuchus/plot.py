@@ -176,7 +176,7 @@ default_stream_style = {
 }
 def plot_data_stream(ophdata, stream=None,
                      use_stream_coords=False, lims=None,
-                     fig=None, data_style=None, stream_style=None, color_by_time=False):
+                     fig=None, data_style=None, stream_style=None):
     """
     Plot the Ophiuchus stream data and optionally overplot a mock stream in either
     galactic or stream coordinates.
@@ -199,8 +199,6 @@ def plot_data_stream(ophdata, stream=None,
     stream_style : dict (optional)
         Dictionary of keyword style arguments passed to
         :func:`matplotlib.scatter` for the mock stream stars.
-    color_by_time : bool (optional)
-        Color the points by the value of time.
 
     Returns
     -------
@@ -282,15 +280,12 @@ def plot_data_stream(ophdata, stream=None,
             x = w_coord.l.to(xlim.unit).value
             y = w_coord.b.to(ylim.unit).value
 
-        if stream.t is not None and color_by_time:
-            stream_style['c'] = stream.t
-
         pts = axes[0].scatter(x, y, **stream_style)
 
-        if stream.t is not None and color_by_time:
+        if 'c' in stream_style:
             cbar_ax = fig.add_axes([0.7, 0.25, 0.25, 0.05]) # [left, bottom, width, height
             cb = fig.colorbar(pts, cax=cbar_ax, orientation='horizontal',
-                              ticks=np.arange(int(round(stream.t.min())), 0+1, 1.))
+                              ticks=np.arange(int(round(min(stream_style['c']))), 0+1, 1.))
         # cb.set_clim()
         # np.arange(int(round(stream_t.min())), 0+1, 1.))
 
