@@ -59,7 +59,7 @@ def main(potential_name, n, config_filename, results_path=None, overwrite=False)
 
     idx, = np.where(grid_d['success'])
     for i in idx:
-        filename = os.path.join(plot_path, 'hel_{}.png'.format(i))
+        filename = os.path.join(plot_path, 'colored_{}.png'.format(i))
         if os.path.exists(filename) and not overwrite:
             logger.debug("Stream {} plot exists".format(i))
             continue
@@ -71,6 +71,13 @@ def main(potential_name, n, config_filename, results_path=None, overwrite=False)
         stream = CPSP.from_w(streams[i].T, units=pot.units)
         fig = plot_data_stream(ophdata, stream=stream,
                                stream_style=dict(s=7, c=t, alpha=0.75, cmap='plasma'))
+        fig.savefig(filename, dpi=300)
+        pl.close(fig)
+
+        # also plot non-colored
+        filename = os.path.join(plot_path, 'transp_{}.png'.format(i))
+        fig = plot_data_stream(ophdata, stream=stream,
+                               stream_style=dict(s=3, color='#555555', alpha=0.15))
         fig.savefig(filename, dpi=300)
         pl.close(fig)
 
