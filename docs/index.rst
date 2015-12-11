@@ -41,11 +41,11 @@ below as an example.
 First, we must fit orbits to the Ophiuchus BHB star data in each potential. We
 do this with the following script::
 
-    python fit-orbit.py --potential=static_mw -v --mcmc_steps=256 --fixtime
+    python fit-orbit.py --potential=static_mw -v --mcmc_steps=512 --fixtime
 
 Or, to run using MPI (e.g., on a cluster -- make sure to replace ``<CORES>>``)::
 
-    mpiexec -n <CORES> python fit-orbit.py --potential=static_mw -v --mcmc_steps=256 --fixtime --mpi
+    mpiexec -n <CORES> python fit-orbit.py --potential=static_mw -v --mcmc_steps=512 --fixtime --mpi
 
 The MCMC walkers should be run for at least 512 steps to ensure convergence.
 
