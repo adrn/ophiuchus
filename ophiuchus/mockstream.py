@@ -82,6 +82,7 @@ def ophiuchus_stream(potential, w0, prog_mass, t_disrupt, t_f, dt=1., t_0=0.,
     k_disp[:,3] = 0.
 
     k_mean[:,4] = 0.3 # vt
+    k_mean[s,4] = 0.3
     k_disp[:,4] = 0.5
 
     k_mean[:,5] = 0. # vz
