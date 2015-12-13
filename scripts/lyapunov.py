@@ -36,9 +36,9 @@ def main(potential_name, results_path=None, overwrite=False):
     if not os.path.exists(output_path):
         os.mkdir(output_path)
 
-    T = 512. # The orbits have periods ~500 Myr
-    nsteps_per_period = 256
-    dt = T / nsteps_per_period # 512 steps per orbit
+    T = 200. # The orbits have periods ~200 Myr
+    nsteps_per_period = 512 # 512 steps per orbit
+    dt = T / nsteps_per_period
     nsteps = int(16384 * nsteps_per_period) # 16384 orbital periods
 
     output_file = os.path.join(output_path, 'lyap.pickle')
