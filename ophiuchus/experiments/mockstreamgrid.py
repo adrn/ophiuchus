@@ -6,19 +6,23 @@ from __future__ import division, print_function
 
 __author__ = "adrn <adrn@astro.columbia.edu>"
 
+# Standard library
+import os
+
 # Third-party
 from astropy import log as logger
 import numpy as np
 import gary.integrate as gi
-# from gary.dynamics.mockstream import dissolved_fardal_stream
 
 # Project
+from .core import GridExperiment
 from ..mockstream import ophiuchus_stream
-from .core import OrbitGridExperiment
+from .. import potential as op
 
 __all__ = ['MockStreamGrid']
 
-class MockStreamGrid(OrbitGridExperiment):
+class MockStreamGrid(GridExperiment):
+
     # failure error codes
     error_codes = {
         1: "Failed to integrate orbits",
@@ -26,27 +30,18 @@ class MockStreamGrid(OrbitGridExperiment):
         3: "Failed to integrate progenitor orbit"
     }
 
-    _run_kwargs = ['integration_time', 'dt', 'release_every', 'w0_path', 'norbits',
-                   'potential_name', 'progenitor_mass', 't_disrupt']
-    config_defaults = dict(
-        t_disrupt=None, # Disruption time
-        integration_time=None, # Total time to integrate for in Myr
-        dt=1., # timestep
-        release_every=None, # release a test particle every N timesteps
-        w0_filename='w0.npy', # Name of the initial conditions file
-        w0_path='.', # path to initial conditions file, relative to cache path
-        norbits=None, # number of orbits to read from the w0 file
-        potential_name=None,
-        progenitor_mass=None # mass of the progenitor system
-    )
+    required_kwargs = ['integration_time', 'dt', 'release_every', 'potential_name',
+                       'progenitor_mass']
+    config_defaults = {
+        "cache_filename": "mockstreamgrid.npy"
+    }
+
+    # grid over disruption time, in Myr
+    grid = np.array([-600, -400, -200, -10.])
 
     def __init__(self, cache_path, overwrite=False, **kwargs):
-        t_disrupt = kwargs.get('t_disrupt', None)
-        if t_disrupt is None:
-            raise ValueError("MUST SUPPLY t_disrupt")
-        kwargs['cache_filename'] = "mockstreamgrid_{}.npy".format(int(t_disrupt))
-
         super(MockStreamGrid, self).__init__(cache_path, overwrite=overwrite, **kwargs)
+        print(self.config.items())
         self._nsteps = int(self.config.integration_time / self.config.dt)
         self._nparticles = self._nsteps // self.config.release_every * 2
 
@@ -59,40 +54,33 @@ class MockStreamGrid(OrbitGridExperiment):
             ('release_every','i8'),
             ('w','f8',(self._nparticles+1,6)),
             ('success','b1'),
-            ('error_code','i8'), # if not successful, why did it fail? see above
+            ('error_code','i8'),
             ('progenitor_mass','f8')
         ]
         return dt
 
-    @classmethod
-    def run(cls, w0, potential, **kwargs):
-        c = dict()
-        for k in cls.config_defaults.keys():
-            if k not in kwargs:
-                c[k] = cls.config_defaults[k]
-            else:
-                c[k] = kwargs[k]
-
+    def run(self, index):
         # return dict
         result = dict()
 
-        # constant + disruption
-        # prog_mass = np.zeros_like(t) + 1E4
-        # rr = np.sqrt(np.sum(ww.T[:3]**2,axis=0))
-        # peri_ix, = argrelmin(rr)
-        # disrupt_idx = peri_ix[-1]
-        # if np.abs(peri_ix[-1] - t.size) < 50:
-        #     disrupt_idx = peri_ix[-2]
+        # This experiment grid is over disruption times
+        t_disrupt = self.grid[index]
 
-        t_f = result['integration_time'] = -np.abs(c['integration_time'])
-        mass = result['progenitor_mass'] = float(c['progenitor_mass'])
-        dt = result['dt'] = c['dt']
-        every = result['release_every'] = int(c['release_every'])
+        # read potential, initial conditions
+        potential = op.load_potential(self.config.potential_name)
+        w0_path = os.path.join(self.cache_path, "..", "orbitfit", "w0.npy")
+        w0 = np.load(os.path.abspath(w0_path))[0] # just read the 0th element, the mean orbit
+
+        # integration time
+        t_f = result['integration_time'] = -np.abs(self.config.integration_time)
+        mass = result['progenitor_mass'] = float(self.config.progenitor_mass)
+        dt = result['dt'] = self.config.dt
+        every = result['release_every'] = int(self.config.release_every)
         try:
-            prog,stream = ophiuchus_stream(potential, np.ascontiguousarray(w0.copy()),
+            prog,stream = ophiuchus_stream(potential, np.ascontiguousarray(w0),
                                            t_f=t_f, dt=dt, release_every=every,
                                            prog_mass=mass, Integrator=gi.DOPRI853Integrator,
-                                           t_disrupt=c['t_disrupt'])
+                                           t_disrupt=t_disrupt)
         except RuntimeError:
             logger.warning("Failed to integrate orbits")
             # result['w'] = np.ones((nparticles,6))*np.nan
@@ -109,8 +97,9 @@ class MockStreamGrid(OrbitGridExperiment):
             return result
         allw = np.vstack((prog.w(potential.units)[:,-1].T, stream.w(potential.units).T))
 
-        result['t_disrupt'] = c['t_disrupt']
+        result['t_disrupt'] = t_disrupt
         result['w'] = allw
         result['success'] = True
         result['error_code'] = 0
+
         return result

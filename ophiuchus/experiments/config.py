@@ -22,6 +22,12 @@ class ConfigNamespace(object):
     def keys(self):
         return self.__dict__.keys()
 
+    def items(self):
+        return self.__dict__.items()
+
+    def get(self, k, *args):
+        return self.__dict__.get(k, *args)
+
 def save(ns, f):
     """
     Either return a YAML string representing the configuration state

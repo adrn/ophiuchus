@@ -15,11 +15,11 @@ from gary.units import galactic
 
 # Project
 from ..mockstream import ophiuchus_stream
-from .core import OrbitGridExperiment
+from .core import GridExperiment
 
 __all__ = ['MockStreamGrid']
 
-class LyapunovGrid(OrbitGridExperiment):
+class LyapunovGrid(GridExperiment):
     # failure error codes
     error_codes = {
         1: "Failed to compute lyapunov exponent",
