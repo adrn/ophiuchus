@@ -26,8 +26,10 @@ class MockStreamGrid(OrbitGridExperiment):
         3: "Failed to integrate progenitor orbit"
     }
 
-    _run_kwargs = ['integration_time', 'dt', 'release_every', 'w0_path', 'norbits', 'potential_name', 'progenitor_mass']
+    _run_kwargs = ['integration_time', 'dt', 'release_every', 'w0_path', 'norbits',
+                   'potential_name', 'progenitor_mass', 't_disrupt']
     config_defaults = dict(
+        t_disrupt=None, # Disruption time
         integration_time=None, # Total time to integrate for in Myr
         dt=1., # timestep
         release_every=None, # release a test particle every N timesteps
@@ -35,11 +37,15 @@ class MockStreamGrid(OrbitGridExperiment):
         w0_path='.', # path to initial conditions file, relative to cache path
         norbits=None, # number of orbits to read from the w0 file
         potential_name=None,
-        progenitor_mass=None, # mass of the progenitor system
-        cache_filename='mockstreamgrid.npy' # Name of the cache file
+        progenitor_mass=None # mass of the progenitor system
     )
 
     def __init__(self, cache_path, overwrite=False, **kwargs):
+        t_disrupt = kwargs.get('t_disrupt', None)
+        if t_disrupt is None:
+            raise ValueError("MUST SUPPLY t_disrupt")
+        kwargs['cache_filename'] = "mockstreamgrid_{}.npy".format(int(t_disrupt))
+
         super(MockStreamGrid, self).__init__(cache_path, overwrite=overwrite, **kwargs)
         self._nsteps = int(self.config.integration_time / self.config.dt)
         self._nparticles = self._nsteps // self.config.release_every * 2
@@ -48,6 +54,7 @@ class MockStreamGrid(OrbitGridExperiment):
     def cache_dtype(self):
         dt = [
             ('dt','f8'),
+            ('t_disrupt','f8'),
             ('integration_time','f8'),
             ('release_every','i8'),
             ('w','f8',(self._nparticles+1,6)),
@@ -85,8 +92,7 @@ class MockStreamGrid(OrbitGridExperiment):
             prog,stream = ophiuchus_stream(potential, np.ascontiguousarray(w0.copy()),
                                            t_f=t_f, dt=dt, release_every=every,
                                            prog_mass=mass, Integrator=gi.DOPRI853Integrator,
-                                           t_disrupt=-300)
-                                           # t_disrupt=t_f) # start disrupted!
+                                           t_disrupt=c['t_disrupt'])
         except RuntimeError:
             logger.warning("Failed to integrate orbits")
             # result['w'] = np.ones((nparticles,6))*np.nan
@@ -103,6 +109,7 @@ class MockStreamGrid(OrbitGridExperiment):
             return result
         allw = np.vstack((prog.w(potential.units)[:,-1].T, stream.w(potential.units).T))
 
+        result['t_disrupt'] = c['t_disrupt']
         result['w'] = allw
         result['success'] = True
         result['error_code'] = 0
