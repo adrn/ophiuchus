@@ -72,7 +72,8 @@ class LyapunovGrid(OrbitGridExperiment):
         try:
             lyap,orbit = gd.fast_lyapunov_max(np.ascontiguousarray(w0), potential,
                                               dt=dt, nsteps=nsteps,
-                                              noffset_orbits=noffset)
+                                              noffset_orbits=noffset,
+                                              return_orbit=False)
         except RuntimeError:
             logger.warning("Failed to compute lyapunov exponent")
             result['mle'] = np.nan
