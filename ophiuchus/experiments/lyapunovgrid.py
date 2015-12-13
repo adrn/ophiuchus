@@ -10,7 +10,8 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 from astropy import log as logger
 import numpy as np
 import gary.integrate as gi
-# from gary.dynamics.mockstream import dissolved_fardal_stream
+import gary.dynamics as gd
+from gary.units import galactic
 
 # Project
 from ..mockstream import ophiuchus_stream
@@ -25,11 +26,13 @@ class LyapunovGrid(OrbitGridExperiment):
         2: "Unexpected failure."
     }
 
-    _run_kwargs = ['w0_path', 'potential_name']
+    _run_kwargs = ['w0_path', 'potential_name', 'norbits',
+                   'nperiods', 'nsteps_per_period', 'noffset_orbits']
     config_defaults = dict(
-        nperiods=16384, # Total number of orbital periods to integrate for
-        nsteps_per_period=512, # Number of steps per integration period for integration stepsize
-        noffset_orbits=2, # Number of offset orbits to integrate and average.
+        nperiods=None, # Total number of orbital periods to integrate for
+        nsteps_per_period=None, # Number of steps per integration period for integration stepsize
+        noffset_orbits=None, # Number of offset orbits to integrate and average.
+        norbits=None, # number of orbits to read from the w0 file
         w0_filename='w0.npy', # Name of the initial conditions file
         w0_path='.', # path to initial conditions file, relative to cache path
         potential_name=None,
@@ -67,7 +70,7 @@ class LyapunovGrid(OrbitGridExperiment):
         nsteps = int(nperiods * nsteps_per_period) # 16384 orbital periods
 
         try:
-            lyap,orbit = gd.fast_lyapunov_max(np.ascontiguousarray(w0), pot,
+            lyap,orbit = gd.fast_lyapunov_max(np.ascontiguousarray(w0), potential,
                                               dt=dt, nsteps=nsteps,
                                               noffset_orbits=noffset)
         except RuntimeError:
@@ -78,8 +81,8 @@ class LyapunovGrid(OrbitGridExperiment):
             return result
         except KeyboardInterrupt:
             raise
-        except:
-            logger.warning("Unexpected failure!")
+        except BaseException as e:
+            logger.warning("Unexpected failure: {}".format(str(e)))
             result['mle'] = np.nan
             result['success'] = False
             result['error_code'] = 2
@@ -87,10 +90,10 @@ class LyapunovGrid(OrbitGridExperiment):
 
         # estimate the FTMLE
         lyap = np.mean(lyap, axis=1)
-        FTMLE = np.mean(lyap[-nsteps_per_period*nperiods//10:])
+        FTMLE = np.mean(lyap[-nsteps_per_period*nperiods//8:])
 
         result['dt'] = dt
-        result['mle'] = FTMLE
+        result['mle'] = FTMLE.decompose(galactic).value
         result['success'] = True
         result['error_code'] = 0
 
