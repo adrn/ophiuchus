@@ -22,7 +22,7 @@ cd /vega/astro/users/amp2217/projects/ophiuchus/scripts/
 
 source activate ophiuchus
 
-mpiexec -n 64 python lyapunovgrid.py --potential=barred_mw_$PBS_ARRAYID -v --config=../../global_lyapunov.cfg --mpi
+mpiexec -n 64 python lyapunovgrid.py --potential=barred_mw_$PBS_ARRAYID -v --config=../../global_lyapunov.cfg --mpi -o
 
 date
 
