@@ -3,7 +3,7 @@
 # Directives
 #PBS -N mockstream-barred
 #PBS -W group_list=yetiastro
-#PBS -l nodes=1:ppn=16,walltime=04:00:00,mem=8gb
+#PBS -l nodes=1:ppn=1,walltime=04:00:00,mem=8gb
 #PBS -M amp2217@columbia.edu
 #PBS -m abe
 #PBS -V
@@ -22,7 +22,11 @@ cd /vega/astro/users/amp2217/projects/ophiuchus/scripts/
 
 source activate ophiuchus
 
-mpiexec -n 16 python mockstreamgrid.py --potential=barred_mw_$PBS_ARRAYID -c ../../global_mockstream.cfg --mpi
+# Parallel
+# mpiexec -n 16 python mockstreamgrid.py --potential=barred_mw_$PBS_ARRAYID -c ../../global_mockstream.cfg --mpi
+
+# Serial
+python mockstreamgrid.py --potential=barred_mw_$PBS_ARRAYID -c ../../global_mockstream.cfg -o
 
 python plot-mockstream.py --potential=barred_mw_$PBS_ARRAYID -c ../../global_mockstream.cfg -v
 
