@@ -41,7 +41,6 @@ class MockStreamGrid(GridExperiment):
 
     def __init__(self, cache_path, overwrite=False, **kwargs):
         super(MockStreamGrid, self).__init__(cache_path, overwrite=overwrite, **kwargs)
-        print(self.config.items())
         self._nsteps = int(self.config.integration_time / self.config.dt)
         self._nparticles = self._nsteps // self.config.release_every * 2
 
