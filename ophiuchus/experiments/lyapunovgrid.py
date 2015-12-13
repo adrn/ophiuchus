@@ -77,7 +77,8 @@ class LyapunovGrid(OrbitGridExperiment):
                                         return_orbit=False)
         except RuntimeError:
             logger.warning("Failed to compute lyapunov exponent")
-            result['mle'] = np.nan
+            result['mle_avg'] = np.nan
+            result['mle_end'] = np.nan
             result['success'] = False
             result['error_code'] = 1
             return result
@@ -85,7 +86,8 @@ class LyapunovGrid(OrbitGridExperiment):
             raise
         except BaseException as e:
             logger.warning("Unexpected failure: {}".format(str(e)))
-            result['mle'] = np.nan
+            result['mle_avg'] = np.nan
+            result['mle_end'] = np.nan
             result['success'] = False
             result['error_code'] = 2
             return result
