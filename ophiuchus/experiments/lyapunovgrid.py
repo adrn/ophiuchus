@@ -70,10 +70,10 @@ class LyapunovGrid(OrbitGridExperiment):
         nsteps = int(nperiods * nsteps_per_period) # 16384 orbital periods
 
         try:
-            lyap,orbit = gd.fast_lyapunov_max(np.ascontiguousarray(w0), potential,
-                                              dt=dt, nsteps=nsteps,
-                                              noffset_orbits=noffset,
-                                              return_orbit=False)
+            lyap = gd.fast_lyapunov_max(np.ascontiguousarray(w0), potential,
+                                        dt=dt, nsteps=nsteps,
+                                        noffset_orbits=noffset,
+                                        return_orbit=False)
         except RuntimeError:
             logger.warning("Failed to compute lyapunov exponent")
             result['mle'] = np.nan
