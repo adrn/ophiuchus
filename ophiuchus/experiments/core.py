@@ -299,7 +299,7 @@ class ExperimentRunner(object):
         if results_path is None:
             raise ValueError("If $PROJECTSPATH is not set, you must provide a path to save "
                              "the results in with the --results_path argument.")
-        experiment_name = self.__class__.__name__.lower().rstrip("grid")
+        experiment_name = self.ExperimentClass.__name__.lower().rstrip("grid")
         cache_path = os.path.join(results_path, args.potential_name, experiment_name)
 
         if args.config_filename is None:
