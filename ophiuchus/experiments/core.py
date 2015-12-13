@@ -138,7 +138,7 @@ class GridExperiment(object):
 
         logger.debug("Flushing {0} to output array...".format(result['index']))
         memmap = np.memmap(self.cache_file, mode='r+',
-                           dtype=self.cache_dtype, shape=(seld.ngrid,))
+                           dtype=self.cache_dtype, shape=(self.ngrid,))
         if result['error_code'] != 0.:
             logger.error("Error code = {0}".format(result['error_code']))
             # error happened
