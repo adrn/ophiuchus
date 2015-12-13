@@ -6,6 +6,9 @@ from __future__ import division, print_function
 
 __author__ = "adrn <adrn@astro.columbia.edu>"
 
+# Standard library
+import os
+
 # Third-party
 from astropy import log as logger
 import numpy as np
@@ -16,28 +19,23 @@ from gary.units import galactic
 # Project
 from ..mockstream import ophiuchus_stream
 from .core import GridExperiment
+from .. import potential as op
 
 __all__ = ['MockStreamGrid']
 
 class LyapunovGrid(GridExperiment):
+
     # failure error codes
     error_codes = {
         1: "Failed to compute lyapunov exponent",
         2: "Unexpected failure."
     }
 
-    _run_kwargs = ['w0_path', 'potential_name', 'norbits',
-                   'nperiods', 'nsteps_per_period', 'noffset_orbits']
-    config_defaults = dict(
-        nperiods=None, # Total number of orbital periods to integrate for
-        nsteps_per_period=None, # Number of steps per integration period for integration stepsize
-        noffset_orbits=None, # Number of offset orbits to integrate and average.
-        norbits=None, # number of orbits to read from the w0 file
-        w0_filename='w0.npy', # Name of the initial conditions file
-        w0_path='.', # path to initial conditions file, relative to cache path
-        potential_name=None,
-        cache_filename='lyapunovgrid.npy' # Name of the cache file
-    )
+    required_kwargs = ['potential_name', 'nperiods', 'nsteps_per_period', 'noffset_orbits']
+    config_defaults = {
+        'noffset_orbits': 2, # Number of offset orbits to integrate and average.
+        'cache_filename': 'lyapunovgrid.npy'
+    }
 
     cache_dtype = [
         ('dt','f8'),
@@ -47,21 +45,25 @@ class LyapunovGrid(GridExperiment):
         ('error_code','i8'), # if not successful, why did it fail? see above
     ]
 
-    @classmethod
-    def run(cls, w0, potential, **kwargs):
-        c = dict()
-        for k in cls.config_defaults.keys():
-            if k not in kwargs:
-                c[k] = cls.config_defaults[k]
-            else:
-                c[k] = kwargs[k]
+    @property
+    def grid(self):
+        if not hasattr(self, '_grid'):
+            path = os.path.abspath(os.path.join(self.cache_path, "..", "orbitfit", "w0.npy"))
+            self._grid = np.load(path)
 
+        return self._grid
+
+    def run(self, index):
         # return dict
         result = dict()
 
-        nsteps_per_period = c['nsteps_per_period']
-        nperiods = c['nperiods']
-        noffset = c['noffset_orbits']
+        nsteps_per_period = self.config.nsteps_per_period
+        nperiods = self.config.nperiods
+        noffset = self.config.noffset_orbits
+
+        # read potential, initial conditions
+        potential = op.load_potential(self.config.potential_name)
+        w0 = self.grid[index]
 
         # I guess this could be determined automatically...but whatever
         T = 200. # The orbits have periods ~200 Myr
