@@ -91,7 +91,8 @@ class LyapunovGrid(OrbitGridExperiment):
 
         # estimate the FTMLE
         lyap = np.mean(lyap, axis=1)
-        FTMLE = np.mean(lyap[-nsteps_per_period*nperiods//8:])
+        ix = max(1,nsteps_per_period*nperiods//64)
+        FTMLE = np.mean(lyap[-ix:])
 
         result['dt'] = dt
         result['mle'] = FTMLE.decompose(galactic).value
