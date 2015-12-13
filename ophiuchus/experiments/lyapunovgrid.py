@@ -41,7 +41,8 @@ class LyapunovGrid(OrbitGridExperiment):
 
     cache_dtype = [
         ('dt','f8'),
-        ('mle','f8'),
+        ('mle_avg','f8'),
+        ('mle_end','f8'),
         ('success','b1'),
         ('error_code','i8'), # if not successful, why did it fail? see above
     ]
@@ -95,7 +96,8 @@ class LyapunovGrid(OrbitGridExperiment):
         FTMLE = np.mean(lyap[-ix:])
 
         result['dt'] = dt
-        result['mle'] = FTMLE.decompose(galactic).value
+        result['mle_avg'] = FTMLE.decompose(galactic).value
+        result['mle_end'] = lyap[-1].decompose(galactic).value
         result['success'] = True
         result['error_code'] = 0
 
