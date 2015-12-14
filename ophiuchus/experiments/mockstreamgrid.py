@@ -75,7 +75,7 @@ class MockStreamGrid(GridExperiment):
         dt = result['dt'] = -np.abs(self.config.dt)
         every = result['release_every'] = int(self.config.release_every)
 
-        nsteps = int(round(np.abs(t_f/dt)))
+        nsteps = int(np.abs(t_f/dt))
         prog = potential.integrate_orbit(w0, dt=dt, nsteps=nsteps, Integrator=gi.DOPRI853Integrator)
         prog = prog[::-1]
 
