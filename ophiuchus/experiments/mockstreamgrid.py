@@ -31,13 +31,13 @@ class MockStreamGrid(GridExperiment):
     }
 
     required_kwargs = ['integration_time', 'dt', 'release_every', 'potential_name',
-                       'progenitor_mass']
+                       't_disrupt']
     config_defaults = {
         "cache_filename": "mockstreamgrid.npy"
     }
 
-    # grid over disruption time, in Myr
-    grid = np.array([-600, -400, -200, -10.])
+    # grid over progenitor mass
+    grid = np.array([1E3, 2E3, 4E3, 8E3, 1E4, 2E4, 4E4])
 
     def __init__(self, cache_path, overwrite=False, **kwargs):
         super(MockStreamGrid, self).__init__(cache_path, overwrite=overwrite, **kwargs)
@@ -48,7 +48,6 @@ class MockStreamGrid(GridExperiment):
     def cache_dtype(self):
         dt = [
             ('dt','f8'),
-            ('t_disrupt','f8'),
             ('integration_time','f8'),
             ('release_every','i8'),
             ('w','f8',(self._nparticles+1,6)),
@@ -63,7 +62,7 @@ class MockStreamGrid(GridExperiment):
         result = dict()
 
         # This experiment grid is over disruption times
-        t_disrupt = self.grid[index]
+        mass = result['progenitor_mass'] = self.grid[index]
 
         # read potential, initial conditions
         potential = op.load_potential(self.config.potential_name)
@@ -71,8 +70,9 @@ class MockStreamGrid(GridExperiment):
         w0 = np.load(os.path.abspath(w0_path))[0] # just read the 0th element, the mean orbit
 
         # integration time
+        t_disrupt = self.config.t_disrupt
         t_f = result['integration_time'] = -np.abs(self.config.integration_time)
-        mass = result['progenitor_mass'] = float(self.config.progenitor_mass)
+        # mass = result['progenitor_mass'] = float(self.config.progenitor_mass)
         dt = result['dt'] = self.config.dt
         every = result['release_every'] = int(self.config.release_every)
         try:
