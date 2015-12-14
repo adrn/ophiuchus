@@ -70,16 +70,20 @@ class MockStreamGrid(GridExperiment):
         w0 = np.load(os.path.abspath(w0_path))[0] # just read the 0th element, the mean orbit
 
         # integration time
-        t_disrupt = self.config.t_disrupt
+        t_disrupt = self.config.t_disrupt * potential.units['time']
         t_f = result['integration_time'] = -np.abs(self.config.integration_time)
-        # mass = result['progenitor_mass'] = float(self.config.progenitor_mass)
-        dt = result['dt'] = self.config.dt
+        dt = result['dt'] = -np.abs(self.config.dt)
         every = result['release_every'] = int(self.config.release_every)
+
+        nsteps = int(round(np.abs(t_f/dt)))
+        prog = potential.integrate_orbit(w0, dt=dt, nsteps=nsteps, Integrator=gi.DOPRI853Integrator)
+        prog = prog[::-1]
+
         try:
-            prog,stream = ophiuchus_stream(potential, np.ascontiguousarray(w0),
-                                           t_f=t_f, dt=dt, release_every=every,
-                                           prog_mass=mass, Integrator=gi.DOPRI853Integrator,
-                                           t_disrupt=t_disrupt)
+            stream = ophiuchus_stream(potential, prog,
+                                      release_every=every,
+                                      prog_mass=mass, Integrator=gi.DOPRI853Integrator,
+                                      t_disrupt=t_disrupt)
         except RuntimeError:
             logger.warning("Failed to integrate orbits")
             # result['w'] = np.ones((nparticles,6))*np.nan
