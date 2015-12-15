@@ -58,6 +58,7 @@ def ophiuchus_stream(potential, prog_orbit, prog_mass, t_disrupt,
     k_mean[:,0] = 2. # R
     k_mean[disrupt_ix:,0] = 0.
     k_disp[:,0] = 0.5
+    k_disp[disrupt_ix:,0] = 1.
 
     k_mean[:,1] = 0. # phi
     k_disp[:,1] = 0.
