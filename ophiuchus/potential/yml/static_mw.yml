@@ -8,14 +8,14 @@ parameters:
   disk:
     a: 3.0
     b: 0.28
-    m: 70000000000.0
+    m: 60000000000.0
   halo:
-    q_z: 0.9
+    q_z: 1.0
     r_s: 30.0
     v_c: 0.19
   spheroid:
-    c: 0.4
-    m: 8000000000.0
+    c: 0.3
+    m: 12000000000.0
 units:
   angle: rad
   angular speed: mas / yr

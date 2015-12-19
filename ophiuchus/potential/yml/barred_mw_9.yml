@@ -4,18 +4,18 @@ parameters:
     Omega: 0.06136272990322247
     alpha: 0.5235987755982988
     m: 15652173913.04348
-    r_s: 1.0
+    r_s: 1.2
   disk:
     a: 3.0
     b: 0.28
-    m: 50000000000.0
+    m: 40000000000.0
   halo:
-    q_z: 0.9
+    q_z: 1.0
     r_s: 30.0
     v_c: 0.19
   spheroid:
-    c: 0.1
-    m: 0.0
+    c: 0.2
+    m: 5000000000.0
 units:
   angle: rad
   angular speed: mas / yr
