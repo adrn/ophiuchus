@@ -11,6 +11,7 @@ import astropy.units as u
 import astropy.coordinates as coord
 import matplotlib.pyplot as pl
 import numpy as np
+from sklearn.neighbors import KernelDensity
 
 # Project
 from . import galactocentric_frame, vcirc, vlsr
@@ -313,3 +314,26 @@ def plot_data_stream(ophdata, stream=None,
     axes[-1].set_visible(False) # HACK because matplotlib bbox issues with invisible plots
 
     return fig
+
+def surface_density(c, bandwidth=0.2, grid_step=0.02):
+    """
+    Given particle positions as a coordinate object, compute the
+    surface density using a kernel density estimate.
+    """
+
+    xgrid = np.arange(2, 9+0.1, grid_step) # deg
+    ygrid = np.arange(26.5, 33.5+0.1, grid_step) # deg
+    shp = (xgrid.size, ygrid.size)
+    grid = np.vstack(map(np.ravel, np.meshgrid(xgrid, ygrid))).T
+
+    x = c.l
+    y = c.b
+    skypos = np.vstack((x,y)).T
+
+    kde = KernelDensity(bandwidth=bandwidth, kernel='epanechnikov')
+    kde.fit(skypos)
+
+    dens = np.exp(kde.score_samples(grid)).reshape(shp)
+    log_dens = np.log10(dens)
+
+    return grid, log_dens
