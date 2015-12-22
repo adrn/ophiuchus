@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [ -n $1 ]
+then
+    echo `rsync -zvr --max-size=200m --exclude "*.sh" --exclude "*~" --exclude 'bkup_*' --exclude '*old*' yeti:/vega/astro/users/amp2217/projects/ophiuchus/results/$1 ~/projects/ophiuchus/results/`
+else
+    echo `rsync -zvr --max-size=200m --exclude "*.sh" --exclude "*~" --exclude 'bkup_*' --exclude '*old*' yeti:/vega/astro/users/amp2217/projects/ophiuchus/results/ ~/projects/ophiuchus/results/`
+fi
