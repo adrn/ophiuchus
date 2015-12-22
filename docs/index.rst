@@ -106,3 +106,10 @@ To run with MPI (e.g., on a cluster)::
 To plot these results, we can use::
 
     python plot-mockstream.py --potential=static_mw -c ../results/global_mockstream.cfg -v
+
+5) Find the best mock stellar stream (maximum likelihood)
+---------------------------------------------------------
+
+After we generate mock streams along samples from the orbit fitting posterior, we now search for the maximum likelihood mock streams in each potential using Hogg's KDE likelihood. Run with:
+
+    python best-mockstream.py --potential=static_mw -c ../results/global_mockstream.cfg -v
