@@ -71,7 +71,7 @@ def main(potential_name, n, config_filename, results_path=None, overwrite=False)
 
         stream = CPSP.from_w(streams[i].T, units=pot.units)
         fig = plot_data_stream(ophdata, stream=stream,
-                               stream_style=dict(s=7, c=t, alpha=0.75, cmap='plasma'))
+                               stream_style=dict(s=7, c=t, alpha=0.75, cmap='plasma_r'))
         fig.savefig(filename, dpi=300)
         pl.close(fig)
 
