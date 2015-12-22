@@ -11,6 +11,7 @@ import os
 import sys
 
 # Third-party
+from astropy import log as logger
 import astropy.coordinates as coord
 import astropy.units as u
 import matplotlib.pyplot as pl
@@ -33,7 +34,7 @@ from ophiuchus import galactocentric_frame, vcirc, vlsr, RESULTSPATH
 from ophiuchus.experiments import MockStreamGrid
 from ophiuchus.plot import plot_data_stream, surface_density
 
-def ln_likelihood(model, data):
+def ln_likelihood(model, ophdata):
     """
     Compute the likelihood by approximating the model density using a
     KDE of the points.
@@ -41,7 +42,7 @@ def ln_likelihood(model, data):
     Parameters
     ----------
     model : :class:`gary.dynamics.CartesianPhaseSpacePosition`
-    data : `ophiuchus.data.OphiuchusData`
+    ophdata : `ophiuchus.data.OphiuchusData`
     """
 
     # sum over model points, product over data points
@@ -63,7 +64,7 @@ def ln_likelihood(model, data):
     data_vr = ophdata.veloc['vr'].decompose(galactic).value
 
     # variances
-    var_l = var_b = (phi2_sigma.decompose(galactic).value)**2
+    var_l = var_b = np.atleast_1d(phi2_sigma.decompose(galactic).value)**2
     var_d = (ophdata.coord_err['distance']**2 + d_sigma**2).decompose(galactic).value # extra distance spread
     var_vr = (ophdata.veloc_err['vr']**2 + vr_sigma**2).decompose(galactic).value # extra velocity spread
 
@@ -125,7 +126,8 @@ def main(potential_name, config_filename, results_path=None, overwrite=False):
     ndata = len(ophdata.coord)
 
     # a file to cache the likelihoods
-    if not os.path.exists or overwrite:
+    if not os.path.exists(cache_file) or overwrite:
+        logger.debug("Cache file does not exist: {}".format(cache_file))
         lls = np.zeros((nstreams,ndata))
         for i in range(nstreams):
             mockstream = gd.CartesianPhaseSpacePosition.from_w(mockstreams[i].T, units=galactic)
@@ -133,6 +135,7 @@ def main(potential_name, config_filename, results_path=None, overwrite=False):
         np.save(cache_file, lls)
 
     else:
+        logger.debug("Loading cache file: {}".format(cache_file))
         lls = np.load(cache_file)
 
     best_ix = lls.sum(axis=1).argmax()
@@ -141,8 +144,6 @@ def main(potential_name, config_filename, results_path=None, overwrite=False):
     # first just plot particle positions
     fig = plot_data_stream(all_ophdata, stream=best_stream,
                            stream_style=dict(s=5, color='#aaaaaa', alpha=0.15))
-    fig.suptitle("{}: {}".format(name,best_ix), fontsize=24, y=1.02)
-    fig.tight_layout()
     fig.savefig(os.path.join(plot_path, "best_fit-points.png"), dpi=400)
 
     # plot particle positions but do observational cut that brani did
@@ -151,8 +152,6 @@ def main(potential_name, config_filename, results_path=None, overwrite=False):
     dist_ix = distance_ix(stream_c)
     fig = plot_data_stream(all_ophdata, stream=best_stream[dist_ix],
                            stream_style=dict(s=5, color='#aaaaaa', alpha=0.15))
-    fig.suptitle("{}: {}".format(name,best_ix), fontsize=24, y=1.02)
-    fig.tight_layout()
     fig.savefig(os.path.join(plot_path, "best_fit-points-cut.png"), dpi=400)
 
     # plot particle density with observational cut that brani did
@@ -166,8 +165,9 @@ def main(potential_name, config_filename, results_path=None, overwrite=False):
 
     ax.set_xlabel("$l$ [deg]", fontsize=18)
     ax.set_ylabel("$b$ [deg]", fontsize=18)
-
-    fig.suptitle("{}: {}".format(name,best_ix), fontsize=24, y=1.02)
+    ax.set_xlim(9,2)
+    ax.set_ylim(26.5,33.5)
+    ax.set_title("{}: {}".format(potential_name,best_ix), fontsize=22)
     fig.tight_layout()
     fig.savefig(os.path.join(plot_path, "best_fit-density.png"), dpi=400)
 
