@@ -155,13 +155,19 @@ def main(potential_name, config_filename, results_path=None, overwrite=False):
     fig.savefig(os.path.join(plot_path, "best_fit-points-cut.png"), dpi=400)
 
     # plot particle density with observational cut that brani did
-    grid,log_dens = surface_density(stream_c[dist_ix], bandwidth=0.2)
+    window_ix = ((stream_c.l > 2*u.deg) & (stream_c.l < 9*u.deg) &
+                 (stream_c.b > 26.5*u.deg) & (stream_c.b < 33.5*u.deg) &
+                 (stream_c.distance > 5.5*u.kpc) & (stream_c.distance < 10*u.kpc))
+    grid,log_dens = surface_density(stream_c[window_ix], bandwidth=0.25)
 
-    fig,ax = pl.subplots(1,1,figsize=(8,6))
+    fig,ax = pl.subplots(1,1,figsize=(6,6))
     cs = ax.contour(grid[:,0].reshape(log_dens.shape), grid[:,1].reshape(log_dens.shape), log_dens,
-                    levels=np.arange(-2.5, 0.5, 0.5), cmap='Blues')
+                    levels=np.arange(-2., 0.5, 0.5), cmap='plasma_r')
     for c in cs.collections:
         c.set_linestyle('solid')
+
+    ax.plot(ophdata.coord.l.degree, ophdata.coord.b.degree,
+            marker='o', color='k', linestyle='none')
 
     ax.set_xlabel("$l$ [deg]", fontsize=18)
     ax.set_ylabel("$b$ [deg]", fontsize=18)
