@@ -6,11 +6,22 @@ from __future__ import division, print_function
 
 __author__ = "adrn <adrn@astro.columbia.edu>"
 
-# Third-party
-import gary.integrate as gi
-from gary.dynamics.orbit import combine
+# Standard lib
+import os
 
-__all__ = ['integrate_forward_backward']
+# Third-party
+import numpy as np
+import gary.integrate as gi
+import gary.dynamics as gd
+from gary.dynamics.orbit import combine
+from gary.observation import distance_modulus
+
+# Project
+from . import RESULTSPATH
+from . import potential as op
+from .experiments.mockstreamgrid import MockStreamGrid
+
+__all__ = ['integrate_forward_backward', 'get_potential_stream_prog']
 
 def integrate_forward_backward(potential, w0, t_forw, t_back, dt=0.5,
                                Integrator=gi.DOPRI853Integrator, t0=0.):
@@ -76,3 +87,16 @@ def get_potential_stream_prog(name):
     release_t = np.repeat(prog.t[None], axis=0, repeats=2).T.ravel().value
 
     return pot, streams, prog
+
+def brani_distance_cut(c):
+    """
+    Perform the same cut in distance modulus that Brani did to
+    select BHB stars.
+    """
+
+    l = c.l
+    helio_dist = c.distance
+    DM = distance_modulus(helio_dist)
+    DM_model = 14.58 - (0.2*1/u.deg)*(l - 5*u.deg)
+
+    return np.abs(DM - DM_model) <= 0.15
