@@ -321,19 +321,20 @@ def surface_density(c, bandwidth=0.2, grid_step=0.02):
     surface density using a kernel density estimate.
     """
 
-    xgrid = np.arange(2, 9+0.1, grid_step) # deg
+    xgrid = np.arange(2., 9.+0.1, grid_step) # deg
     ygrid = np.arange(26.5, 33.5+0.1, grid_step) # deg
     shp = (xgrid.size, ygrid.size)
-    grid = np.vstack(map(np.ravel, np.meshgrid(xgrid, ygrid))).T
+    meshies = np.meshgrid(xgrid, ygrid)
+    grid = np.vstack(map(np.ravel, meshies)).T
 
-    x = c.l
-    y = c.b
+    x = c.l.degree
+    y = c.b.degree
     skypos = np.vstack((x,y)).T
 
     kde = KernelDensity(bandwidth=bandwidth, kernel='epanechnikov')
     kde.fit(skypos)
 
-    dens = np.exp(kde.score_samples(grid)).reshape(shp)
+    dens = np.exp(kde.score_samples(grid)).reshape(meshies[0].shape)
     log_dens = np.log10(dens)
 
     return grid, log_dens
