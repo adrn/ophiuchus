@@ -49,3 +49,30 @@ def integrate_forward_backward(potential, w0, t_forw, t_back, dt=0.5,
         return orbit[:,0]
     else:
         return orbit
+
+def get_potential_stream_prog(name):
+    """
+    Given a potential name, read the mockstream results and return
+    the potential object, stream stars, and progenitor orbit.
+
+    """
+    pot = op.load_potential(name)
+
+    grid = MockStreamGrid.from_config(cache_path=os.path.join(RESULTSPATH, name, "mockstream"),
+                                      config_filename="../../global_mockstream.cfg",
+                                      potential_name=name)
+    d = grid.read_cache()
+
+    streams = gd.CartesianPhaseSpacePosition.from_w(d['w'].T, units=pot.units)
+    dt = d['dt'][0]
+    every = d['release_every'][0]
+    nsteps = int(np.abs(grid.config.integration_time / dt))
+
+    w0 = np.load(os.path.join(RESULTSPATH, name, "orbitfit", "w0.npy"))[0]
+    w0 = gd.CartesianPhaseSpacePosition.from_w(w0, units=pot.units)
+    prog = pot.integrate_orbit(w0, dt=dt, nsteps=nsteps, Integrator=gi.DOPRI853Integrator)
+    prog = prog[::-1]
+
+    release_t = np.repeat(prog.t[None], axis=0, repeats=2).T.ravel().value
+
+    return pot, streams, prog
