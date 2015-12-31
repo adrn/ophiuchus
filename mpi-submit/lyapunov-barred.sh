@@ -22,7 +22,7 @@ cd /vega/astro/users/amp2217/projects/ophiuchus/scripts/
 
 source activate ophiuchus
 
-python lyapunov.py --potential=barred_mw_$PBS_ARRAYID -v
+python lyapunov.py --potential=barred_mw_$PBS_ARRAYID -v -o
 
 date
 

@@ -21,7 +21,7 @@ cd /vega/astro/users/amp2217/projects/ophiuchus/scripts/
 
 source activate ophiuchus
 
-python lyapunov.py --potential=static_mw -v 
+python lyapunov.py --potential=static_mw -v  -o
 
 date
 
