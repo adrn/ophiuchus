@@ -49,11 +49,10 @@ def ln_likelihood(model, ophdata):
     gal,vel = model.to_frame(coord.Galactic, galactocentric_frame=galactocentric_frame,
                              vcirc=vcirc, vlsr=vlsr)
 
-    # extra dispersions from intrinsic thickness of the stream -- this comes from the
-    #   orbit fitting sampler file
-    phi2_sigma = 0.01 * u.deg # 0.00353495
-    d_sigma = 0.3093834 * u.kpc
-    vr_sigma = 0.00265714 * u.kpc/u.Myr # ~2 km/s
+    # bandwidth parameters for the KDE
+    h_l = 0.1*u.deg
+    h_d = 0.2*u.kpc
+    h_vr = 0.5*u.km/u.s
 
     # get model coordinates
     model_l, model_b, model_d = gal.l.radian, gal.b.radian, gal.distance.to(u.kpc).value
@@ -64,9 +63,9 @@ def ln_likelihood(model, ophdata):
     data_vr = ophdata.veloc['vr'].decompose(galactic).value
 
     # variances
-    var_l = var_b = np.atleast_1d(phi2_sigma.decompose(galactic).value)**2
-    var_d = (ophdata.coord_err['distance']**2 + d_sigma**2).decompose(galactic).value # extra distance spread
-    var_vr = (ophdata.veloc_err['vr']**2 + vr_sigma**2).decompose(galactic).value # extra velocity spread
+    var_l = var_b = np.atleast_1d(h_l.decompose(galactic).value)**2
+    var_d = (ophdata.coord_err['distance']**2 + h_d**2).decompose(galactic).value # extra distance spread
+    var_vr = (ophdata.veloc_err['vr']**2 + h_vr**2).decompose(galactic).value # extra velocity spread
 
     chi2 = -0.5*(
         ((data_l[None] - model_l[:,None])**2 / var_l[None] + np.log(2*np.pi*var_l[None])) +
