@@ -15,9 +15,9 @@ if not _ASTROPY_SETUP_:
 
     # Galactocentric reference frame to use for this project
     galactocentric_frame = coord.Galactocentric(z_sun=0.*u.pc,
-                                                galcen_distance=8*u.kpc)
-    vcirc = 220.*u.km/u.s
-    vlsr = [-11.1, 24, 7.25]*u.km/u.s
+                                                galcen_distance=8.3*u.kpc)
+    vcirc = 238.*u.km/u.s
+    vlsr = [-11.1, 12.24, 7.25]*u.km/u.s
 
     # read from environment variable
     import os
