@@ -3,3 +3,5 @@ scipy
 cython
 astropy>=1.1
 numexpr
+git+https://github.com/adrn/gary.git
+git+https://github.com/adrn/biff.git
