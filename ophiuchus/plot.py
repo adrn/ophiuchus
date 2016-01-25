@@ -11,7 +11,11 @@ import astropy.units as u
 import astropy.coordinates as coord
 import matplotlib.pyplot as pl
 import numpy as np
-from sklearn.neighbors import KernelDensity
+try:
+    from sklearn.neighbors import KernelDensity
+    HAS_SKLEARN = True
+except ImportError:
+    HAS_SKLEARN = False
 
 # Project
 from . import galactocentric_frame, vcirc, vlsr
@@ -320,6 +324,9 @@ def surface_density(c, bandwidth=0.2, grid_step=0.02):
     Given particle positions as a coordinate object, compute the
     surface density using a kernel density estimate.
     """
+
+    if not HAS_SKLEARN:
+        raise ImportError("scikit-learn is required to use this function.")
 
     xgrid = np.arange(2., 9.+0.1, grid_step) # deg
     ygrid = np.arange(26.5, 33.5+0.1, grid_step) # deg
