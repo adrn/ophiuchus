@@ -57,6 +57,8 @@ Let's plot the coordinates in the new system:
     ax.set_ylabel(r'$\phi_2$')
     ax.grid()
 
+The rotation matrix that defines the transformation from Galactic to Ophiuchus coordinates is `located here <https://github.com/adrn/ophiuchus/blob/master/ophiuchus/coordinates/rotationmatrix.txt>`_.
+
 API
 ===
 
