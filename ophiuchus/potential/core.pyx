@@ -106,13 +106,13 @@ class OphiuchusPotential(CPotentialBase):
         Unique list of non-reducable units that specify (at minimum) the
         length, mass, time, and angle units.
     spheroid : dict
-        Dictionary of parameter values for a :class:`HernquistPotential`.
+        Dictionary of parameter values for a :class:`gary.potential.HernquistPotential`.
     disk : dict
-        Dictionary of parameter values for a :class:`MiyamotoNagaiPotential`.
+        Dictionary of parameter values for a :class:`gary.potential.MiyamotoNagaiPotential`.
     halo : dict
-        Dictionary of parameter values for a :class:`FlattenedNFWPotential`.
+        Dictionary of parameter values for a :class:`gary.potential.FlattenedNFWPotential`.
     bar : dict
-        Dictionary of parameter values for a :class:`TODO`.
+        Dictionary of parameter values for a :class:`ophiuchus.potential.WangZhaoBarPotential`.
 
     """
     def __init__(self, units=galactic, spheroid=dict(), disk=dict(), halo=dict(), bar=dict()):
@@ -145,6 +145,13 @@ class OphiuchusPotential(CPotentialBase):
         self.parameters['bar'] = bar
 
         super(OphiuchusPotential, self).__init__(units=units)
+
+        for name,group in self.parameters.items():
+            for k,v in group.items():
+                try:
+                    group[k] = v.decompose(units).value
+                except AttributeError:
+                    pass
 
         c_params = dict()
 
