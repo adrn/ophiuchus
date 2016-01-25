@@ -15,6 +15,15 @@ Documentation
    coordinates
    potential
 
+********
+Examples
+********
+
+.. toctree::
+   :maxdepth: 1
+
+   read-data-integrate-plot
+
 **********
 For myself
 **********
