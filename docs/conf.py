@@ -168,3 +168,10 @@ if eval(setup_cfg.get('edit_on_github')):
 
     edit_on_github_source_root = ""
     edit_on_github_doc_root = "docs"
+
+
+## -- If building on READTHEDOCS ---------------------
+if os.environ.get("READTHEDOCS", False):
+    from subprocess import STDOUT, check_call
+    check_call(['apt-get', 'install', '-y', 'libgsl0-dev'],
+         stdout=open(os.devnull,'wb'), stderr=STDOUT)
