@@ -15,6 +15,7 @@ addons:
             - graphviz
             - texlive-latex-extra
             - dvipng
+            - libgsl0-dev
 
 env:
     global:
