@@ -1,7 +1,7 @@
 Modeling the Ophiuchus stream
 =============================
 
-This repository contains the code used to produce results and create figures for [Spending too much time at the Galactic bar: chaotic fanning of the Ophiuchus stream](http://arxiv.org/abs/TODO). The source for the paper itself can be found [in this repository](https://github.com/adrn/ophiuchus-paper).
+This repository contains the code used to produce results and create figures for [Spending too much time at the Galactic bar: chaotic fanning of the Ophiuchus stream](http://arxiv.org/abs/1601.06790). The source for the paper itself can be found [in this repository](https://github.com/adrn/ophiuchus-paper).
 
 Dependencies
 ------------
