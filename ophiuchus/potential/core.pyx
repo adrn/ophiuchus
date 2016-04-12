@@ -91,20 +91,9 @@ class WangZhaoBarPotential(CPotentialBase):
         parameters['alpha'] = alpha
         parameters['Omega'] = Omega
 
-        super(CPotentialBase, self).__init__(parameters, units=units)
-
-        c_params = []
-        for k,v in self.parameters.items():
-            c_params.append(self.parameters[k].value)
-        self.c_parameters = np.array(c_params)
-
-        self.c_instance = WangZhaoBarWrapper(self.G, self.c_parameters)
-
-        # super(WangZhaoBarPotential, self).__init__(parameters=parameters,
-        #                                            units=units,
-        #                                            Wrapper=WangZhaoBarWrapper)
-
-        # print(self.parameters)
+        super(WangZhaoBarPotential, self).__init__(parameters=parameters,
+                                                   units=units,
+                                                   Wrapper=WangZhaoBarWrapper)
 
 class OphiuchusPotential(CCompositePotential):
     r"""
