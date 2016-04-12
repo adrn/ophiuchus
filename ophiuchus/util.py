@@ -86,7 +86,7 @@ def get_potential_stream_prog(name):
 
     release_t = np.repeat(prog.t[None], axis=0, repeats=2).T.ravel().value
 
-    return pot, streams, prog
+    return pot, streams, prog, release_t
 
 def brani_distance_cut(c):
     """
