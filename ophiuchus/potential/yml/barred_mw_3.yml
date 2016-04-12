@@ -1,25 +1,67 @@
 class: OphiuchusPotential
-parameters:
-  bar:
-    Omega: 0.06136272990322247
-    alpha: 0.3490658503988659
-    m: 15652173913.04348
-    r_s: 1.2
-  disk:
-    a: 3.0
-    b: 0.28
-    m: 40000000000.0
-  halo:
-    q_z: 1.0
-    r_s: 30.0
-    v_c: 0.19
-  spheroid:
-    c: 0.2
-    m: 5000000000.0
-units:
-  angle: rad
-  angular speed: mas / yr
-  length: kpc
-  mass: solMass
-  speed: km / s
-  time: Myr
+components:
+- class: MiyamotoNagaiPotential
+  name: disk
+  parameters: !!python/object/apply:collections.OrderedDict
+    dictitems:
+      a: 3.0
+      a_unit: kpc
+      b: 0.28
+      b_unit: kpc
+      m: 40000000000.0
+      m_unit: solMass
+  units:
+    angle: rad
+    angular speed: mas / yr
+    length: kpc
+    mass: solMass
+    speed: km / s
+    time: Myr
+- class: HernquistPotential
+  name: bulge
+  parameters: !!python/object/apply:collections.OrderedDict
+    dictitems:
+      c: 0.2
+      c_unit: kpc
+      m: 5000000000.0
+      m_unit: solMass
+  units:
+    angle: rad
+    angular speed: mas / yr
+    length: kpc
+    mass: solMass
+    speed: km / s
+    time: Myr
+- class: FlattenedNFWPotential
+  name: halo
+  parameters: !!python/object/apply:collections.OrderedDict
+    dictitems:
+      q_z: 1.0
+      q_z_unit: ''
+      r_s: 30.0
+      r_s_unit: kpc
+      v_c: 0.19
+      v_c_unit: kpc / Myr
+  units:
+    angle: rad
+    angular speed: mas / yr
+    length: kpc
+    mass: solMass
+    speed: km / s
+    time: Myr
+- class: WangZhaoBarPotential
+  name: bar
+  parameters: !!python/object/apply:collections.OrderedDict
+    dictitems:
+      Omega: 0.06136272990322247
+      alpha: 0.3490658503988659
+      m: 15652173913.04348
+      r_s: 1.2
+  units:
+    angle: rad
+    angular speed: mas / yr
+    length: kpc
+    mass: solMass
+    speed: km / s
+    time: Myr
+type: composite
