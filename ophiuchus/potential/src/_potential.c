@@ -13,6 +13,10 @@ double wang_zhao_bar_value(double t, double *pars, double *r) {
             - pattern speed
     */
 
+    if (pars[1] == 0.) {
+        return 0.;
+    }
+
     double bar_angle0 = pars[3];
     double pattern_speed = -pars[4]; // added minus sign to make it rotate correctly
     double alpha = (-bar_angle0 + pattern_speed*t); // % (2 * 3.141592653589793238462643383));
@@ -45,6 +49,10 @@ void wang_zhao_bar_gradient(double t, double *pars, double *r, double *grad) {
             - initial bar angle
             - pattern speed
     */
+
+    if (pars[1] == 0.) {
+        return;
+    }
 
     double bar_angle0 = pars[3];
     double pattern_speed = -pars[4]; // added minus sign to make it rotate correctly
@@ -87,6 +95,10 @@ double wang_zhao_bar_density(double t, double *pars, double *r) {
             - initial bar angle
             - pattern speed
     */
+
+    if (pars[1] == 0.) {
+        return 0.;
+    }
 
     double bar_angle0 = pars[3];
     double pattern_speed = -pars[4]; // added minus sign to make it rotate correctly
