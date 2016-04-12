@@ -1,6 +1,5 @@
 #include <math.h>
 #include <string.h>
-#include "_cbuiltin.h"
 #include "bfe.h"
 
 double wang_zhao_coeff[392] = {1.509, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -2.606, 0.0, 0.665, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 6.406, 0.0, -0.66, 0.0, 0.044, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -5.859, 0.0, 0.984, 0.0, -0.03, 0.0, 0.001, -0.086, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.221, 0.0, 0.129, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.295, 0.0, -0.14, 0.0, -0.012, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.033, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.001, 0.0, 0.006, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.02, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
@@ -113,65 +112,65 @@ double wang_zhao_bar_density(double t, double *pars, double *r) {
     return scf_density(t, &new_pars[0], &rot_r[0]);
 }
 
-double ophiuchus_value(double t, double *pars, double*r) {
-    double v = 0.;
+// double ophiuchus_value(double t, double *pars, double*r) {
+//     double v = 0.;
 
-    if (pars[1] > 0) {
-        v += hernquist_value(0., &pars[0], &r[0]);
-    }
-    if (pars[4] > 0) {
-        v += miyamotonagai_value(0., &pars[3], &r[0]);
-    }
-    if (pars[8] > 0) {
-        v += flattenednfw_value(0., &pars[7], &r[0]);
-    }
-    if (pars[12] > 0) {
-        v += wang_zhao_bar_value(t, &pars[11], &r[0]);
-    }
-    return v;
-}
+//     if (pars[1] > 0) {
+//         v += hernquist_value(0., &pars[0], &r[0]);
+//     }
+//     if (pars[4] > 0) {
+//         v += miyamotonagai_value(0., &pars[3], &r[0]);
+//     }
+//     if (pars[8] > 0) {
+//         v += flattenednfw_value(0., &pars[7], &r[0]);
+//     }
+//     if (pars[12] > 0) {
+//         v += wang_zhao_bar_value(t, &pars[11], &r[0]);
+//     }
+//     return v;
+// }
 
-void ophiuchus_gradient(double t, double *pars, double *r, double *grad) {
-    double tmp_grad[3];
-    int i;
+// void ophiuchus_gradient(double t, double *pars, double *r, double *grad) {
+//     double tmp_grad[3];
+//     int i;
 
-    for (i=0; i<3; i++) grad[i] = 0;
+//     for (i=0; i<3; i++) grad[i] = 0;
 
-    if (pars[1] > 0) {
-        hernquist_gradient(0., &pars[0], &r[0], &tmp_grad[0]);
-        for (i=0; i<3; i++) grad[i] += tmp_grad[i];
-    }
+//     if (pars[1] > 0) {
+//         hernquist_gradient(0., &pars[0], &r[0], &tmp_grad[0]);
+//         for (i=0; i<3; i++) grad[i] += tmp_grad[i];
+//     }
 
-    if (pars[4] > 0) {
-        miyamotonagai_gradient(0., &pars[3], &r[0], &tmp_grad[0]);
-        for (i=0; i<3; i++) grad[i] += tmp_grad[i];
-    }
+//     if (pars[4] > 0) {
+//         miyamotonagai_gradient(0., &pars[3], &r[0], &tmp_grad[0]);
+//         for (i=0; i<3; i++) grad[i] += tmp_grad[i];
+//     }
 
-    if (pars[8] > 0) {
-        flattenednfw_gradient(0., &pars[7], &r[0], &tmp_grad[0]);
-        for (i=0; i<3; i++) grad[i] += tmp_grad[i];
-    }
+//     if (pars[8] > 0) {
+//         flattenednfw_gradient(0., &pars[7], &r[0], &tmp_grad[0]);
+//         for (i=0; i<3; i++) grad[i] += tmp_grad[i];
+//     }
 
-    if (pars[12] > 0) {
-        wang_zhao_bar_gradient(t, &pars[11], &r[0], &tmp_grad[0]);
-        for (i=0; i<3; i++) grad[i] += tmp_grad[i];
-    }
-}
+//     if (pars[12] > 0) {
+//         wang_zhao_bar_gradient(t, &pars[11], &r[0], &tmp_grad[0]);
+//         for (i=0; i<3; i++) grad[i] += tmp_grad[i];
+//     }
+// }
 
-double ophiuchus_density(double t, double *pars, double*r) {
-    double v = 0.;
+// double ophiuchus_density(double t, double *pars, double*r) {
+//     double v = 0.;
 
-    if (pars[1] > 0) {
-        v += hernquist_density(0., &pars[0], &r[0]);
-    }
-    if (pars[4] > 0) {
-        v += miyamotonagai_density(0., &pars[3], &r[0]);
-    }
-    if (pars[8] > 0) {
-        v += flattenednfw_density(0., &pars[7], &r[0]);
-    }
-    if (pars[12] > 0) {
-        v += wang_zhao_bar_density(t, &pars[11], &r[0]);
-    }
-    return v;
-}
+//     if (pars[1] > 0) {
+//         v += hernquist_density(0., &pars[0], &r[0]);
+//     }
+//     if (pars[4] > 0) {
+//         v += miyamotonagai_density(0., &pars[3], &r[0]);
+//     }
+//     if (pars[8] > 0) {
+//         v += flattenednfw_density(0., &pars[7], &r[0]);
+//     }
+//     if (pars[12] > 0) {
+//         v += wang_zhao_bar_density(t, &pars[11], &r[0]);
+//     }
+//     return v;
+// }

@@ -24,25 +24,51 @@ cimport cython
 
 # Project
 from gary.units import galactic
-from gary.potential.cpotential cimport _CPotential
+from gary.potential.cpotential cimport CPotentialWrapper
 from gary.potential.cpotential import CPotentialBase
+from gary.potential import (CCompositePotential, MiyamotoNagaiPotential,
+                            HernquistPotential, FlattenedNFWPotential)
+
+cdef extern from "src/cpotential.h":
+    enum:
+        MAX_N_COMPONENTS = 16
+
+    ctypedef double (*densityfunc)(double t, double *pars, double *q) nogil
+    ctypedef double (*valuefunc)(double t, double *pars, double *q) nogil
+    ctypedef void (*gradientfunc)(double t, double *pars, double *q, double *grad) nogil
+
+    ctypedef struct CPotential:
+        int n_components
+        int n_dim
+        densityfunc density[MAX_N_COMPONENTS]
+        valuefunc value[MAX_N_COMPONENTS]
+        gradientfunc gradient[MAX_N_COMPONENTS]
+        int n_params[MAX_N_COMPONENTS]
+        double *parameters[MAX_N_COMPONENTS]
 
 cdef extern from "src/_potential.h":
     double wang_zhao_bar_value(double t, double *pars, double *q) nogil
     void wang_zhao_bar_gradient(double t, double *pars, double *q, double *grad) nogil
     double wang_zhao_bar_density(double t, double *pars, double *q) nogil
 
-    double ophiuchus_value(double t, double *pars, double *q) nogil
-    void ophiuchus_gradient(double t, double *pars, double *q, double *grad) nogil
-    double ophiuchus_density(double t, double *pars, double *q) nogil
+cdef class WangZhaoBarWrapper(CPotentialWrapper):
 
-cdef class _WangZhaoBarPotential(_CPotential):
-    def __cinit__(self, double G, double m, double r_s, double alpha, double Omega):
-        self._parvec = np.array([G,m,r_s,alpha,Omega])
-        self._parameters = &(self._parvec[0])
-        self.c_value = &wang_zhao_bar_value
-        self.c_gradient = &wang_zhao_bar_gradient
-        self.c_density = &wang_zhao_bar_density
+    def __init__(self, G, parameters):
+        cdef CPotential cp
+
+        # This is the only code that needs to change per-potential
+        cp.value[0] = <valuefunc>(wang_zhao_bar_value)
+        cp.density[0] = <densityfunc>(wang_zhao_bar_density)
+        cp.gradient[0] = <gradientfunc>(wang_zhao_bar_gradient)
+        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+        cp.n_components = 1
+        self._params = np.array([G] + list(parameters), dtype=np.float64)
+        self._n_params = np.array([len(self._params)], dtype=np.int32)
+        cp.n_params = &(self._n_params[0])
+        cp.parameters[0] = &(self._params[0])
+        cp.n_dim = 3
+        self.cpotential = cp
 
 class WangZhaoBarPotential(CPotentialBase):
     r"""
@@ -59,45 +85,29 @@ class WangZhaoBarPotential(CPotentialBase):
 
     """
     def __init__(self, m, r_s, alpha, Omega, units=galactic):
-        self.G = G.decompose(units).value
-        self.parameters = dict()
-        self.parameters['m'] = m
-        self.parameters['r_s'] = r_s
-        self.parameters['alpha'] = alpha
-        self.parameters['Omega'] = Omega
-        super(WangZhaoBarPotential, self).__init__(units=units)
+        parameters = OrderedDict()
+        parameters['m'] = m
+        parameters['r_s'] = r_s
+        parameters['alpha'] = alpha
+        parameters['Omega'] = Omega
 
-        c_params = dict()
-        c_params['G'] = self.G
-        c_params['m'] = m
-        c_params['r_s'] = r_s
-        c_params['alpha'] = alpha
-        c_params['Omega'] = Omega
+        super(CPotentialBase, self).__init__(parameters, units=units)
 
-        self.c_instance = _WangZhaoBarPotential(**c_params)
+        c_params = []
+        for k,v in self.parameters.items():
+            c_params.append(self.parameters[k].value)
+        self.c_parameters = np.array(c_params)
 
-cdef class _OphiuchusPotential(_CPotential):
+        self.c_instance = WangZhaoBarWrapper(self.G, self.c_parameters)
 
-    def __cinit__(self, double G, double m_spher, double c,
-                  double G2, double m_disk, double a, double b,
-                  double G3, double v_c, double r_s, double q_z,
-                  double G4, double m_bar, double a_bar, double alpha, double Omega
-                  ):
-        # alpha = initial bar angle
-        # Omega = pattern speed
-        self._parvec = np.array([G, m_spher, c, # 0,1,2
-                                 G2, m_disk, a, b, # 3,4,5,6
-                                 G3, v_c, r_s, q_z, # 7,8,9,10
-                                 G4, m_bar, a_bar, alpha, Omega]) # 11,12,13,14,15
-        self._parameters = &(self._parvec[0])
-        self.c_value = &ophiuchus_value
-        self.c_gradient = &ophiuchus_gradient
-        self.c_density = &ophiuchus_density
+        # super(WangZhaoBarPotential, self).__init__(parameters=parameters,
+        #                                            units=units,
+        #                                            Wrapper=WangZhaoBarWrapper)
 
-class OphiuchusPotential(CPotentialBase):
+        # print(self.parameters)
+
+class OphiuchusPotential(CCompositePotential):
     r"""
-    OphiuchusPotential(units, spheroid=dict(), disk=dict(), halo=dict(), bar=dict())
-
     Four-component Milky Way potential used for modeling the Ophiuchus stream.
 
     Parameters
@@ -115,9 +125,8 @@ class OphiuchusPotential(CPotentialBase):
         Dictionary of parameter values for a :class:`ophiuchus.potential.WangZhaoBarPotential`.
 
     """
-    def __init__(self, units=galactic, spheroid=dict(), disk=dict(), halo=dict(), bar=dict()):
-        self.G = G.decompose(units).value
-        self.parameters = dict()
+    def __init__(self, units=galactic,
+                 spheroid=dict(), disk=dict(), halo=dict(), bar=dict()):
         default_spheroid = dict(m=0., c=0.1)
         default_disk = dict(m=5.E10, a=3, b=0.28) # similar to Bovy
         default_halo = dict(v_c=0.19, r_s=30., q_z=0.9)
@@ -127,56 +136,22 @@ class OphiuchusPotential(CPotentialBase):
         for k,v in default_disk.items():
             if k not in disk:
                 disk[k] = v
-        self.parameters['disk'] = disk
 
         for k,v in default_spheroid.items():
             if k not in spheroid:
                 spheroid[k] = v
-        self.parameters['spheroid'] = spheroid
 
         for k,v in default_halo.items():
             if k not in halo:
                 halo[k] = v
-        self.parameters['halo'] = halo
 
         for k,v in default_bar.items():
             if k not in bar:
                 bar[k] = v
-        self.parameters['bar'] = bar
 
-        super(OphiuchusPotential, self).__init__(units=units)
+        super(OphiuchusPotential,self).__init__()
 
-        for name,group in self.parameters.items():
-            for k,v in group.items():
-                try:
-                    group[k] = v.decompose(units).value
-                except AttributeError:
-                    pass
-
-        c_params = dict()
-
-        # bulge
-        c_params['G'] = self.G
-        c_params['m_spher'] = spheroid['m']
-        c_params['c'] = spheroid['c']
-
-        # disk
-        c_params['G2'] = self.G
-        c_params['m_disk'] = disk['m']
-        c_params['a'] = disk['a']
-        c_params['b'] = disk['b']
-
-        # halo
-        c_params['G3'] = self.G
-        c_params['v_c'] = halo['v_c']
-        c_params['r_s'] = halo['r_s']
-        c_params['q_z'] = halo['q_z']
-
-        # bar
-        c_params['G4'] = self.G
-        c_params['m_bar'] = bar['m']
-        c_params['a_bar'] = bar['r_s']
-        c_params['alpha'] = bar['alpha']
-        c_params['Omega'] = bar['Omega']
-
-        self.c_instance = _OphiuchusPotential(**c_params)
+        self["disk"] = MiyamotoNagaiPotential(units=units, **disk)
+        self["spheroid"] = HernquistPotential(units=units, **spheroid)
+        self["halo"] = FlattenedNFWPotential(units=units, **halo)
+        self["bar"] = WangZhaoBarPotential(units=units, **bar)
