@@ -31,3 +31,14 @@ for a in alphas:
             yaml.dump(yaml_pot, f, default_flow_style=False)
 
         i += 1
+
+# fixed bar
+alpha = (25*u.degree).decompose(galactic).value
+Omega = 0.
+
+yaml_pot['components'][comp_ix]['parameters']['alpha'] = alpha
+yaml_pot['components'][comp_ix]['parameters']['Omega'] = Omega
+
+fn = "/Users/adrian/projects/ophiuchus/ophiuchus/potential/yml/barred_mw_fixed.yml"
+with open(fn, 'w') as f:
+    yaml.dump(yaml_pot, f, default_flow_style=False)
