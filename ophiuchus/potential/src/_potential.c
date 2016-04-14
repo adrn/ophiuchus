@@ -53,6 +53,10 @@ void wang_zhao_bar_gradient(double t, double *pars, double *r, double *grad) {
     if (pars[1] == 0.) {
         return;
     }
+    double tmp_grad[3];
+    tmp_grad[0] = 0.;
+    tmp_grad[1] = 0.;
+    tmp_grad[2] = 0.;
 
     double bar_angle0 = pars[3];
     double pattern_speed = -pars[4]; // added minus sign to make it rotate correctly
@@ -79,12 +83,14 @@ void wang_zhao_bar_gradient(double t, double *pars, double *r, double *grad) {
     for (int i=0; i<392; i++) {
         new_pars[5+i] = wang_zhao_coeff[i];
     }
-    scf_gradient(t, &new_pars[0], &rot_r[0], &grad[0]);
 
-    tmp1 = cosa*grad[0] - sina*grad[1];
-    tmp2 = sina*grad[0] + cosa*grad[1];
-    grad[0] = tmp1;
-    grad[1] = tmp2;
+    scf_gradient(t, &new_pars[0], &rot_r[0], &tmp_grad[0]);
+
+    tmp1 = cosa*tmp_grad[0] - sina*tmp_grad[1];
+    tmp2 = sina*tmp_grad[0] + cosa*tmp_grad[1];
+    grad[0] = grad[0] + tmp1;
+    grad[1] = grad[1] + tmp2;
+    grad[2] = grad[2] + tmp_grad[2];
 }
 
 double wang_zhao_bar_density(double t, double *pars, double *r) {
