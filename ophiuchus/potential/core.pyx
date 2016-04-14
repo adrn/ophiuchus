@@ -13,8 +13,6 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 from collections import OrderedDict
 
 # Third-party
-from astropy.coordinates.angles import rotation_matrix
-from astropy.constants import G
 import astropy.units as u
 import numpy as np
 cimport numpy as np
@@ -26,8 +24,6 @@ cimport cython
 from gary.units import galactic
 from gary.potential.cpotential cimport CPotentialWrapper
 from gary.potential.cpotential import CPotentialBase
-from gary.potential import (CCompositePotential, MiyamotoNagaiPotential,
-                            HernquistPotential, FlattenedNFWPotential)
 
 cdef extern from "src/cpotential.h":
     enum:
@@ -94,53 +90,3 @@ class WangZhaoBarPotential(CPotentialBase):
         super(WangZhaoBarPotential, self).__init__(parameters=parameters,
                                                    units=units,
                                                    Wrapper=WangZhaoBarWrapper)
-
-class OphiuchusPotential(CCompositePotential):
-    r"""
-    Four-component Milky Way potential used for modeling the Ophiuchus stream.
-
-    Parameters
-    ----------
-    units : iterable
-        Unique list of non-reducable units that specify (at minimum) the
-        length, mass, time, and angle units.
-    spheroid : dict
-        Dictionary of parameter values for a :class:`gary.potential.HernquistPotential`.
-    disk : dict
-        Dictionary of parameter values for a :class:`gary.potential.MiyamotoNagaiPotential`.
-    halo : dict
-        Dictionary of parameter values for a :class:`gary.potential.FlattenedNFWPotential`.
-    bar : dict
-        Dictionary of parameter values for a :class:`ophiuchus.potential.WangZhaoBarPotential`.
-
-    """
-    def __init__(self, units=galactic,
-                 spheroid=dict(), disk=dict(), halo=dict(), bar=dict()):
-        default_spheroid = dict(m=0., c=0.1)
-        default_disk = dict(m=5.E10, a=3, b=0.28) # similar to Bovy
-        default_halo = dict(v_c=0.19, r_s=30., q_z=0.9)
-        default_bar = dict(m=1.8E10 / 1.15, r_s=1.,
-                           alpha=0.349065850398, Omega=0.06136272990322247) # from Wang, Zhao, et al.
-
-        for k,v in default_disk.items():
-            if k not in disk:
-                disk[k] = v
-
-        for k,v in default_spheroid.items():
-            if k not in spheroid:
-                spheroid[k] = v
-
-        for k,v in default_halo.items():
-            if k not in halo:
-                halo[k] = v
-
-        for k,v in default_bar.items():
-            if k not in bar:
-                bar[k] = v
-
-        super(OphiuchusPotential,self).__init__()
-
-        self["disk"] = MiyamotoNagaiPotential(units=units, **disk)
-        self["spheroid"] = HernquistPotential(units=units, **spheroid)
-        self["halo"] = FlattenedNFWPotential(units=units, **halo)
-        self["bar"] = WangZhaoBarPotential(units=units, **bar)
