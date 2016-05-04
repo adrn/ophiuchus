@@ -18,7 +18,7 @@ components:
     speed: km / s
     time: Myr
 - class: HernquistPotential
-  name: bulge
+  name: spheroid
   parameters: !!python/object/apply:collections.OrderedDict
     dictitems:
       c: 0.2
