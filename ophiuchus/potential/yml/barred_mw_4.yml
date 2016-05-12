@@ -64,4 +64,4 @@ components:
     mass: solMass
     speed: km / s
     time: Myr
-type: composite
+type: custom

@@ -1,5 +1,5 @@
 class: OphiuchusPotential
-type: composite
+type: custom
 components:
 - class: MiyamotoNagaiPotential
   name: disk
