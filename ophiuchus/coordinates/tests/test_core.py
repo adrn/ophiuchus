@@ -8,7 +8,7 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 import astropy.units as u
 import astropy.coordinates as coord
 import numpy as np
-import gary.dynamics as gd
+import gala.dynamics as gd
 
 # Project
 from ..core import Ophiuchus

@@ -6,8 +6,8 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 
 # Third-party
 import astropy.units as u
-from gary.potential.tests.helpers import PotentialTestBase, CompositePotentialTestBase
-from gary.potential.io import load
+from gala.potential.tests.helpers import PotentialTestBase, CompositePotentialTestBase
+from gala.potential.io import load
 
 # Project
 from .. import WangZhaoBarPotential, OphiuchusPotential

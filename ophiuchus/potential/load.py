@@ -6,7 +6,7 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 
 # Third-party
 from astropy.utils.data import get_pkg_data_filename
-import gary.potential as gp
+import gala.potential as gp
 
 def load_potential(name):
     from .. import potential as op

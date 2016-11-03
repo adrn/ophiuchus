@@ -21,9 +21,9 @@ import cython
 cimport cython
 
 # Project
-from gary.units import galactic
-from gary.potential.cpotential cimport CPotentialWrapper
-from gary.potential.cpotential import CPotentialBase
+from gala.units import galactic
+from gala.potential.cpotential cimport CPotentialWrapper
+from gala.potential.cpotential import CPotentialBase
 
 cdef extern from "src/cpotential.h":
     enum:

@@ -25,7 +25,7 @@ env:
         - NUMPY_VERSION=1.10
         - ASTROPY_VERSION=stable
         - SETUP_CMD='test -a "--assert=plain"' # HACK (1/2): UNTIL ASTROPY CONTAINS PYTEST 2.7.3
-        - PIP_DEPENDENCIES='git+https://github.com/adrn/gary.git git+https://github.com/adrn/biff.git'
+        - PIP_DEPENDENCIES='git+https://github.com/adrn/gala.git git+https://github.com/adrn/biff.git'
         # For this package-template, we include examples of Cython modules,
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
@@ -96,4 +96,4 @@ after_success:
     # If coveralls.io is set up for this package, uncomment the line
     # below and replace "packagename" with the name of your package.
     # The coveragerc file may be customized as needed for your package.
-    - if [[ $SETUP_CMD == 'test --coverage' ]]; then coveralls --rcfile='gary/tests/coveragerc'; fi
+    - if [[ $SETUP_CMD == 'test --coverage' ]]; then coveralls --rcfile='gala/tests/coveragerc'; fi

@@ -12,8 +12,8 @@ import sys
 from astropy import log as logger
 import astropy.units as u
 import numpy as np
-from gary.dynamics.mockstream import mock_stream
-from gary.integrate import LeapfrogIntegrator
+from gala.dynamics.mockstream import mock_stream
+from gala.integrate import LeapfrogIntegrator
 
 def ophiuchus_stream(potential, prog_orbit, prog_mass, t_disrupt,
                      release_every=1, Integrator=LeapfrogIntegrator, Integrator_kwargs=dict()):
@@ -26,9 +26,9 @@ def ophiuchus_stream(potential, prog_orbit, prog_mass, t_disrupt,
 
     Parameters
     ----------
-    potential : `~gary.potential.PotentialBase`
+    potential : `~gala.potential.PotentialBase`
         The gravitational potential.
-    prog_orbit : `~gary.dynamics.Orbit`
+    prog_orbit : `~gala.dynamics.Orbit`
         The orbit of the progenitor system.
     prog_mass : numeric, array_like
         A single mass or an array of masses if the progenitor mass evolves
@@ -37,14 +37,14 @@ def ophiuchus_stream(potential, prog_orbit, prog_mass, t_disrupt,
         The time that the progenitor completely disrupts.
     release_every : int (optional)
         Release particles at the Lagrange points every X timesteps.
-    Integrator : `~gary.integrate.Integrator` (optional)
+    Integrator : `~gala.integrate.Integrator` (optional)
         Integrator to use.
     Integrator_kwargs : dict (optional)
         Any extra keyword argumets to pass to the integrator function.
 
     Returns
     -------
-    stream : `~gary.dynamics.CartesianPhaseSpacePosition`
+    stream : `~gala.dynamics.CartesianPhaseSpacePosition`
 
     """
 

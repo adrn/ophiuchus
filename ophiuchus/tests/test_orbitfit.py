@@ -9,8 +9,8 @@ from astropy import log as logger
 import astropy.units as u
 import matplotlib.pyplot as pl
 import numpy as np
-import gary.potential as gp
-import gary.integrate as gi
+import gala.potential as gp
+import gala.integrate as gi
 import scipy.optimize as so
 
 # Project

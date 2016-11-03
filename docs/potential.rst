@@ -9,7 +9,7 @@ Introduction
 
 .. _potential-api:
 
-The gravitational potentials used in the paper are implemented as :mod:`gary.potential` and the potentials instantiated with the specific parameter choices used in the paper can be loaded by name as:
+The gravitational potentials used in the paper are implemented as :mod:`gala.potential` and the potentials instantiated with the specific parameter choices used in the paper can be loaded by name as:
 
     >>> import ophiuchus.potential as op
     >>> pot = op.load_potential('static_mw')
@@ -20,7 +20,7 @@ For the barred potentials 1-9, replace 1 above with the desired number.
 You can also create your own potential with a specific parameter choice using the :class:`ophiuchus.potential.OphiuchusPotential` class. This class accepts four dictionaries defining parameter choices for the disk, halo, bar, and spheroid component of the potential:
 
     >>> import astropy.units as u
-    >>> from gary.units import galactic
+    >>> from gala.units import galactic
     >>> disk = dict(m=6E10*u.Msun, a=3.*u.kpc, b=0.28*u.kpc)
     >>> halo = dict(v_c=200*u.km/u.s, r_s=30*u.kpc, q_z=1.)
     >>> bar = dict(m=2E10*u.Msun, r_s=1.0,
@@ -30,9 +30,9 @@ You can also create your own potential with a specific parameter choice using th
     ...                             disk=disk, halo=halo,
     ...                             bar=bar, spheroid=spher)
 
-This potential object acts like any of the :mod:`gary.potential` objects -- for example, we can easily integrate orbits:
+This potential object acts like any of the :mod:`gala.potential` objects -- for example, we can easily integrate orbits:
 
-    >>> import gary.integrate as gi
+    >>> import gala.integrate as gi
     >>> w0 = gd.CartesianPhaseSpacePosition(pos=([[5.,0,0],
     ...                                           [2.,0,0]]*u.kpc).T,
     ...                                     vel=([[0.,200,25],
@@ -47,9 +47,9 @@ This potential object acts like any of the :mod:`gary.potential` objects -- for 
     import astropy.units as u
     import matplotlib.pyplot as pl
     import numpy as np
-    import gary.dynamics as gd
-    import gary.integrate as gi
-    from gary.units import galactic
+    import gala.dynamics as gd
+    import gala.integrate as gi
+    from gala.units import galactic
     import ophiuchus.potential as op
 
     disk = dict(m=6E10*u.Msun, a=3.*u.kpc, b=0.28*u.kpc)

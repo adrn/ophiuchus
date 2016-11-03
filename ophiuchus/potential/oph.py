@@ -10,8 +10,8 @@ from __future__ import division, print_function
 __author__ = "adrn <adrn@astro.columbia.edu>"
 
 # Third-party
-from gary.units import galactic
-from gary.potential import (CCompositePotential, MiyamotoNagaiPotential,
+from gala.units import galactic
+from gala.potential import (CCompositePotential, MiyamotoNagaiPotential,
                             HernquistPotential, FlattenedNFWPotential)
 
 # Project
@@ -27,11 +27,11 @@ class OphiuchusPotential(CCompositePotential):
         Unique list of non-reducable units that specify (at minimum) the
         length, mass, time, and angle units.
     spheroid : dict
-        Dictionary of parameter values for a :class:`gary.potential.HernquistPotential`.
+        Dictionary of parameter values for a :class:`gala.potential.HernquistPotential`.
     disk : dict
-        Dictionary of parameter values for a :class:`gary.potential.MiyamotoNagaiPotential`.
+        Dictionary of parameter values for a :class:`gala.potential.MiyamotoNagaiPotential`.
     halo : dict
-        Dictionary of parameter values for a :class:`gary.potential.FlattenedNFWPotential`.
+        Dictionary of parameter values for a :class:`gala.potential.FlattenedNFWPotential`.
     bar : dict
         Dictionary of parameter values for a :class:`ophiuchus.potential.WangZhaoBarPotential`.
 

@@ -11,10 +11,10 @@ import os
 
 # Third-party
 import numpy as np
-import gary.integrate as gi
-import gary.dynamics as gd
-from gary.dynamics.orbit import combine
-from gary.observation import distance_modulus
+import gala.integrate as gi
+import gala.dynamics as gd
+from gala.dynamics.orbit import combine
+from gala.observation import distance_modulus
 
 # Project
 from . import RESULTSPATH
@@ -31,22 +31,22 @@ def integrate_forward_backward(potential, w0, t_forw, t_back, dt=0.5,
 
     Parameters
     ----------
-    potential : :class:`gary.potential.PotentialBase`
-    w0 : :class:`gary.dynamics.CartesianPhaseSpacePosition`, array_like
+    potential : :class:`gala.potential.PotentialBase`
+    w0 : :class:`gala.dynamics.CartesianPhaseSpacePosition`, array_like
     t_forw : numeric
         The amount of time to integate forward in time (a positive number).
     t_back : numeric
         The amount of time to integate backwards in time (a negative number).
     dt : numeric (optional)
         The timestep.
-    Integrator : :class:`gary.integrate.Integrator` (optional)
+    Integrator : :class:`gala.integrate.Integrator` (optional)
         The integrator class to use.
     t0 : numeric (optional)
         The initial time.
 
     Returns
     -------
-    orbit : :class:`gary.dynamics.CartesianOrbit`
+    orbit : :class:`gala.dynamics.CartesianOrbit`
     """
 
     o1 = potential.integrate_orbit(w0, dt=-dt, t1=t0, t2=t_back, Integrator=Integrator)

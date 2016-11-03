@@ -25,8 +25,8 @@ import matplotlib.pyplot as pl
 import numpy as np
 import scipy.optimize as so
 import emcee
-from gary.units import galactic
-from gary.util import get_pool
+from gala.units import galactic
+from gala.util import get_pool
 
 # This project
 from ophiuchus import RESULTSPATH

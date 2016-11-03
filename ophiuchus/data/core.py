@@ -14,10 +14,10 @@ from astropy.utils.data import get_pkg_data_filename
 import numpy as np
 import numexpr
 
-import gary.coordinates as gc
-from gary.observation import distance
-from gary.units import galactic
-from gary.util import atleast_2d
+import gala.coordinates as gc
+from gala.observation import distance
+from gala.units import galactic
+from gala.util import atleast_2d
 
 # Project
 from .. import galactocentric_frame, vcirc, vlsr
@@ -80,14 +80,14 @@ class OphiuchusData(object):
         self._tbl = _tbl
 
     def _mcmc_sample_to_coord(self, p):
-        p = atleast_2d(p, insert_axis=-1) # note: from Gary, not Numpy
+        p = atleast_2d(p, insert_axis=-1) # note: from Gala, not Numpy
         oph = Ophiuchus(phi1=p[0]*0.*u.radian, # this is required by the MCMC
                         phi2=p[0]*u.radian, # this index looks weird but is right
                         distance=p[1]*u.kpc)
         return oph.transform_to(coord.Galactic)
 
     def _mcmc_sample_to_w0(self, p):
-        p = atleast_2d(p, insert_axis=-1) # note: from Gary, not Numpy
+        p = atleast_2d(p, insert_axis=-1) # note: from Gala, not Numpy
         c = self._mcmc_sample_to_coord(p)
         x0 = c.transform_to(galactocentric_frame).cartesian.xyz.decompose(galactic).value
         v0 = gc.vhel_to_gal(c, pm=(p[2]*u.rad/u.Myr,p[3]*u.rad/u.Myr), rv=p[4]*u.kpc/u.Myr,
