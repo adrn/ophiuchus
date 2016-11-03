@@ -22,7 +22,12 @@ from astropy_helpers.version_helpers import generate_version_py
 
 # Get some values from the setup.cfg
 from distutils import config
-conf = config.ConfigParser()
+try:
+    from ConfigParser import ConfigParser
+except ImportError:
+    from configparser import ConfigParser
+conf = ConfigParser()
+
 conf.read(['setup.cfg'])
 metadata = dict(conf.items('metadata'))
 
@@ -108,7 +113,7 @@ setup(name=PACKAGENAME,
       version=VERSION,
       description=DESCRIPTION,
       scripts=scripts,
-      install_requires=['astropy', 'six', 'matplotlib', 'numexpr', 'emcee'],
+      install_requires=['astropy', 'six', 'numexpr', 'emcee'],
       author=AUTHOR,
       author_email=AUTHOR_EMAIL,
       license=LICENSE,
