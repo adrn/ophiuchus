@@ -17,7 +17,6 @@ from six.moves import cPickle as pickle
 # Third-party
 import numpy as np
 from astropy import log as logger
-from gala.util import get_pool
 
 # Project
 from .. import RESULTSPATH
