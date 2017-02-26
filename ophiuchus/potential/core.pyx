@@ -22,22 +22,24 @@ cimport cython
 
 # Project
 from gala.units import galactic
-from gala.potential.cpotential cimport CPotentialWrapper
-from gala.potential.cpotential import CPotentialBase
+from gala.potential.potential.cpotential cimport CPotentialWrapper
+from gala.potential.potential.cpotential import CPotentialBase
 
-cdef extern from "src/cpotential.h":
+cdef extern from "src/funcdefs.h":
+    ctypedef double (*densityfunc)(double t, double *pars, double *q, int n_dim, int n_dim) nogil
+    ctypedef double (*energyfunc)(double t, double *pars, double *q, int n_dim, int n_dim) nogil
+    ctypedef void (*gradientfunc)(double t, double *pars, double *q, int n_dim, int n_dim, double *grad) nogil
+    ctypedef void (*hessianfunc)(double t, double *pars, double *q, int n_dim, int n_dim, double *hess) nogil
+
+cdef extern from "potential/src/cpotential.h":
     enum:
         MAX_N_COMPONENTS = 16
-
-    ctypedef double (*densityfunc)(double t, double *pars, double *q) nogil
-    ctypedef double (*valuefunc)(double t, double *pars, double *q) nogil
-    ctypedef void (*gradientfunc)(double t, double *pars, double *q, double *grad) nogil
 
     ctypedef struct CPotential:
         int n_components
         int n_dim
         densityfunc density[MAX_N_COMPONENTS]
-        valuefunc value[MAX_N_COMPONENTS]
+        energyfunc value[MAX_N_COMPONENTS]
         gradientfunc gradient[MAX_N_COMPONENTS]
         int n_params[MAX_N_COMPONENTS]
         double *parameters[MAX_N_COMPONENTS]
@@ -53,7 +55,7 @@ cdef class WangZhaoBarWrapper(CPotentialWrapper):
         cdef CPotential cp
 
         # This is the only code that needs to change per-potential
-        cp.value[0] = <valuefunc>(wang_zhao_bar_value)
+        cp.value[0] = <energyfunc>(wang_zhao_bar_value)
         cp.density[0] = <densityfunc>(wang_zhao_bar_density)
         cp.gradient[0] = <gradientfunc>(wang_zhao_bar_gradient)
         # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

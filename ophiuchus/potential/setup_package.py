@@ -13,8 +13,7 @@ def get_extensions():
 
     # Get biff path
     import biff
-    biff_base_path = os.path.split(biff.__file__)[0]
-    biff_incl_path = os.path.join(biff_base_path, "src")
+    biff_incl_path = os.path.split(biff.__file__)[0]
     print(biff_incl_path)
 
     cfg = setup_helpers.DistutilsExtensionArgs()
@@ -23,9 +22,9 @@ def get_extensions():
     cfg['include_dirs'].append(biff_incl_path)
     cfg['sources'].append('ophiuchus/potential/core.pyx')
     cfg['sources'].append('ophiuchus/potential/src/_potential.c')
-    cfg['sources'].append(os.path.join(gala_path, 'src', 'cpotential.c'))
-    cfg['sources'].append(os.path.join(biff_incl_path, 'bfe.c'))
-    cfg['sources'].append(os.path.join(biff_incl_path, 'bfe_helper.c'))
+    cfg['sources'].append(os.path.join(gala_path, 'potential', 'src', 'cpotential.c'))
+    cfg['sources'].append(os.path.join(biff_incl_path, 'scf', 'src', 'bfe.c'))
+    cfg['sources'].append(os.path.join(biff_incl_path, 'scf', 'src', 'bfe_helper.c'))
     cfg['libraries'] = ['gsl', 'gslcblas']
     cfg['extra_compile_args'] = ['--std=gnu99']
 
