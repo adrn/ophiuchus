@@ -51,22 +51,11 @@ cdef extern from "src/_potential.h":
 
 cdef class WangZhaoBarWrapper(CPotentialWrapper):
 
-    def __init__(self, G, parameters):
-        cdef CPotential cp
-
-        # This is the only code that needs to change per-potential
-        cp.value[0] = <energyfunc>(wang_zhao_bar_value)
-        cp.density[0] = <densityfunc>(wang_zhao_bar_density)
-        cp.gradient[0] = <gradientfunc>(wang_zhao_bar_gradient)
-        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-        cp.n_components = 1
-        self._params = np.array([G] + list(parameters), dtype=np.float64)
-        self._n_params = np.array([len(self._params)], dtype=np.int32)
-        cp.n_params = &(self._n_params[0])
-        cp.parameters[0] = &(self._params[0])
-        cp.n_dim = 3
-        self.cpotential = cp
+    def __init__(self, G, parameters, q0):
+        self.init([G] + list(parameters), np.ascontiguousarray(q0))
+        self.cpotential.value[0] = <energyfunc>(wang_zhao_bar_value)
+        self.cpotential.density[0] = <densityfunc>(wang_zhao_bar_density)
+        self.cpotential.gradient[0] = <gradientfunc>(wang_zhao_bar_gradient)
 
 class WangZhaoBarPotential(CPotentialBase):
     r"""
