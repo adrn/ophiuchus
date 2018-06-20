@@ -15,7 +15,7 @@ import numpy as np
 import numexpr
 
 import gala.coordinates as gc
-from gala.observation import distance
+# from gala.observation import distance
 from gala.units import galactic
 from gala.util import atleast_2d
 
@@ -24,6 +24,9 @@ from .. import galactocentric_frame, vcirc, vlsr
 from ..coordinates import Ophiuchus
 
 __all__ = ['OphiuchusData']
+
+def distance(dm):
+    return coord.Distance(distmod=dm)
 
 class OphiuchusData(object):
     """

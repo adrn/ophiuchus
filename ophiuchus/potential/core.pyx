@@ -45,9 +45,9 @@ cdef extern from "potential/src/cpotential.h":
         double *parameters[MAX_N_COMPONENTS]
 
 cdef extern from "src/_potential.h":
-    double wang_zhao_bar_value(double t, double *pars, double *q) nogil
-    void wang_zhao_bar_gradient(double t, double *pars, double *q, double *grad) nogil
-    double wang_zhao_bar_density(double t, double *pars, double *q) nogil
+    double wang_zhao_bar_value(double t, double *pars, double *q, int n_dim) nogil
+    void wang_zhao_bar_gradient(double t, double *pars, double *q, int n_dim, double *grad) nogil
+    double wang_zhao_bar_density(double t, double *pars, double *q, int n_dim) nogil
 
 cdef class WangZhaoBarWrapper(CPotentialWrapper):
 
