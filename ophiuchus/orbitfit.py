@@ -13,7 +13,7 @@ uno = u.dimensionless_unscaled
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.stats import norm
-from gary.units import galactic
+from gala.units import galactic
 
 # Project
 from . import galactocentric_frame, vcirc, vlsr
@@ -131,7 +131,7 @@ def ln_likelihood(p, ophdata, potential, dt, freeze=None):
     p : iterable
         The parameters of the model: distance, proper motions, radial velocity, the integration time,
         and (optionally) intrinsic angular width of the stream.
-    potential : :class:`gary.potential.PotentialBase`
+    potential : :class:`gala.potential.PotentialBase`
         The gravitational potential.
     dt : float
         Timestep for integrating the orbit.

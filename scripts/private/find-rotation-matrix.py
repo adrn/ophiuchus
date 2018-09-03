@@ -16,7 +16,7 @@ import astropy.units as u
 from astropy.coordinates.angles import rotation_matrix
 import matplotlib.pyplot as pl
 import numpy as np
-from gary.dynamics import orbitfit
+from gala.dynamics import orbitfit
 
 # Project
 from ophiuchus.data import OphiuchusData

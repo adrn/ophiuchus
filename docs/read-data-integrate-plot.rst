@@ -9,10 +9,10 @@ In this example, we'll use the package to read in the Blue Horizontal Branch (BH
 First, some imports:
 
     >>> import astropy.units as u
-    >>> import gary.integrate as gi
-    >>> import gary.dynamics as gd
-    >>> import gary.coordinates as gc
-    >>> from gary.units import galactic
+    >>> import gala.integrate as gi
+    >>> import gala.dynamics as gd
+    >>> import gala.coordinates as gc
+    >>> from gala.units import galactic
     >>> import ophiuchus.potential as op
     >>> from ophiuchus.coordinates import Ophiuchus
 
@@ -29,7 +29,7 @@ To transform from Heliocentric coordinates to Galactocentric coordinates, we mus
 
     >>> from ophiuchus import galactocentric_frame, vcirc, vlsr
 
-which can be passed in to the Astropy and Gary coordinate transformation functions to transform the positions and velocities of the BHB stars to a Galactocentric frame:
+which can be passed in to the Astropy and Gala coordinate transformation functions to transform the positions and velocities of the BHB stars to a Galactocentric frame:
 
     >>> pos = data.coord.transform_to(galactocentric_frame).cartesian.xyz
     >>> vel = gc.vhel_to_gal(data.coord, rv=data.veloc['vr'],
@@ -44,7 +44,7 @@ which can be passed in to the Astropy and Gary coordinate transformation functio
     :align: center
 
     import matplotlib.pyplot as pl
-    import gary.coordinates as gc
+    import gala.coordinates as gc
     from ophiuchus.data import OphiuchusData
     from ophiuchus import galactocentric_frame, vcirc, vlsr
 
@@ -65,7 +65,7 @@ We could now take these positions and velocities and integrate some orbits in on
     >>> barred_potential = op.load_potential('barred_mw_8')
     >>> static_potential = op.load_potential('static_mw')
 
-Now we'll create a :class:`~gary.dynamics.CartesianPhaseSpacePosition` object from the positions and velocities of all of the stars and integrate these orbits backwards in time (for 1 Gyr) in a barred potential and a static potential model for the Milky Way. We'll use the more precise :class:`~gary.integrate.DOPRI853Integrator`:
+Now we'll create a :class:`~gala.dynamics.CartesianPhaseSpacePosition` object from the positions and velocities of all of the stars and integrate these orbits backwards in time (for 1 Gyr) in a barred potential and a static potential model for the Milky Way. We'll use the more precise :class:`~gala.integrate.DOPRI853Integrator`:
 
     >>> data_w = gd.CartesianPhaseSpacePosition(pos=pos, vel=vel)
     >>> barred_orbits = barred_potential.integrate_orbit(data_w, dt=-0.5, nsteps=2000,
@@ -82,9 +82,9 @@ Now we'll create a :class:`~gary.dynamics.CartesianPhaseSpacePosition` object fr
 .. plot::
     :align: center
 
-    import gary.integrate as gi
-    import gary.coordinates as gc
-    import gary.dynamics as gd
+    import gala.integrate as gi
+    import gala.coordinates as gc
+    import gala.dynamics as gd
     import matplotlib.pyplot as pl
     from ophiuchus.data import OphiuchusData
     from ophiuchus import galactocentric_frame, vcirc, vlsr

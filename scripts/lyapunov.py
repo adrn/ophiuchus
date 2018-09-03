@@ -12,7 +12,7 @@ import os
 # Third-party
 from astropy import log as logger
 import numpy as np
-import gary.dynamics as gd
+import gala.dynamics as gd
 from six.moves import cPickle as pickle
 
 # This project

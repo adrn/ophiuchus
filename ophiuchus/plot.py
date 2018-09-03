@@ -52,7 +52,7 @@ def plot_data_orbit(ophdata, orbit=None, use_stream_coords=False, lims=None,
     Parameters
     ----------
     ophdata : :class:`ophiuchus.data.OphiuchusData`
-    orbit : :class:`gary.dynamics.CartesianOrbit` (optional)
+    orbit : :class:`gala.dynamics.CartesianOrbit` (optional)
     use_stream_coords : bool (optional)
         Plot things in terms of rotated stream coordinates. Default is False,
         will plot in terms of Galactic coordinates.
@@ -189,7 +189,7 @@ def plot_data_stream(ophdata, stream=None,
     Parameters
     ----------
     ophdata : :class:`ophiuchus.data.OphiuchusData`
-    stream : :class:`gary.dynamics.CartesianPhaseSpacePosition`, :class:`numpy.ndarray` (optional)
+    stream : :class:`gala.dynamics.CartesianPhaseSpacePosition`, :class:`numpy.ndarray` (optional)
     use_stream_coords : bool (optional)
         Plot things in terms of rotated stream coordinates. Default is False,
         will plot in terms of Galactic coordinates.

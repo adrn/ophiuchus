@@ -11,10 +11,8 @@ import os
 
 # Third-party
 import numpy as np
-import gary.integrate as gi
-import gary.dynamics as gd
-from gary.dynamics.orbit import combine
-from gary.observation import distance_modulus
+import gala.integrate as gi
+import gala.dynamics as gd
 
 # Project
 from . import RESULTSPATH
@@ -31,30 +29,26 @@ def integrate_forward_backward(potential, w0, t_forw, t_back, dt=0.5,
 
     Parameters
     ----------
-    potential : :class:`gary.potential.PotentialBase`
-    w0 : :class:`gary.dynamics.CartesianPhaseSpacePosition`, array_like
+    potential : :class:`gala.potential.PotentialBase`
+    w0 : :class:`gala.dynamics.CartesianPhaseSpacePosition`, array_like
     t_forw : numeric
         The amount of time to integate forward in time (a positive number).
     t_back : numeric
         The amount of time to integate backwards in time (a negative number).
     dt : numeric (optional)
         The timestep.
-    Integrator : :class:`gary.integrate.Integrator` (optional)
+    Integrator : :class:`gala.integrate.Integrator` (optional)
         The integrator class to use.
     t0 : numeric (optional)
         The initial time.
 
     Returns
     -------
-    orbit : :class:`gary.dynamics.CartesianOrbit`
+    orbit : :class:`gala.dynamics.CartesianOrbit`
     """
 
     o1 = potential.integrate_orbit(w0, dt=-dt, t1=t0, t2=t_back, Integrator=Integrator)
-    o2 = potential.integrate_orbit(w0, dt=dt, t1=t0, t2=t_forw, Integrator=Integrator)
-
-    o1 = o1[::-1]
-    o2 = o2[1:]
-    orbit = combine((o1, o2), along_time_axis=True)
+    o2 = potential.integrate_orbit(o1[-1], dt=dt, t1=o1.t[-1], t2=t_forw, Integrator=Integrator)
 
     if orbit.pos.shape[-1] == 1:
         return orbit[:,0]
@@ -95,8 +89,7 @@ def brani_distance_cut(c):
     """
 
     l = c.l
-    helio_dist = c.distance
-    DM = distance_modulus(helio_dist)
+    helio_dist = c.distance.distmod
     DM_model = 14.58 - (0.2*1/u.deg)*(l - 5*u.deg)
 
     return np.abs(DM - DM_model) <= 0.15

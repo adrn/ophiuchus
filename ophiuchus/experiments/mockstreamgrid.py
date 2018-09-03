@@ -12,7 +12,7 @@ import os
 # Third-party
 from astropy import log as logger
 import numpy as np
-import gary.integrate as gi
+import gala.integrate as gi
 
 # Project
 from .core import GridExperiment

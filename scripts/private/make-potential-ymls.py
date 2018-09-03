@@ -1,7 +1,7 @@
 import sys
 import yaml
 import astropy.units as u
-from gary.units import galactic
+from gala.units import galactic
 
 alphas = [20,25,30]*u.deg
 Omegas = [40,50,60]*u.km/u.s/u.kpc

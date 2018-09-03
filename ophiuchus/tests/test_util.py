@@ -6,8 +6,8 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 
 # Third-party
 import astropy.units as u
-import gary.potential as gp
-from gary.units import galactic
+import gala.potential as gp
+from gala.units import galactic
 
 # Project
 from ..util import integrate_forward_backward

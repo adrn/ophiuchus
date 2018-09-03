@@ -12,7 +12,7 @@ import astropy.units as u
 from astropy import log as logger
 import matplotlib.pyplot as pl
 import numpy as np
-from gary.dynamics import CartesianPhaseSpacePosition as CPSP
+from gala.dynamics import CartesianPhaseSpacePosition as CPSP
 
 # This project
 from ophiuchus import RESULTSPATH

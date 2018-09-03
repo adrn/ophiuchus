@@ -18,12 +18,12 @@ import matplotlib.pyplot as pl
 import numpy as np
 
 # Custom
-import gary.coordinates as gc
-import gary.dynamics as gd
-import gary.integrate as gi
-import gary.potential as gp
-from gary.observation import distance_modulus
-from gary.units import galactic
+import gala.coordinates as gc
+import gala.dynamics as gd
+import gala.integrate as gi
+import gala.potential as gp
+from gala.observation import distance_modulus
+from gala.units import galactic
 from scipy.misc import logsumexp
 
 import ophiuchus.potential as op
@@ -41,7 +41,7 @@ def ln_likelihood(model, ophdata):
 
     Parameters
     ----------
-    model : :class:`gary.dynamics.CartesianPhaseSpacePosition`
+    model : :class:`gala.dynamics.CartesianPhaseSpacePosition`
     ophdata : `ophiuchus.data.OphiuchusData`
     """
 

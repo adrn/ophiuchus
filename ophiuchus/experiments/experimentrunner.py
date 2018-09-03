@@ -13,7 +13,6 @@ from six.moves import cPickle as pickle
 # Third-party
 import numpy as np
 from astropy import log as logger
-from gary.util import get_pool
 
 # Project
 from .. import RESULTSPATH
@@ -84,6 +83,7 @@ class ExperimentRunner(object):
             kwargs = dict()
 
         # get a pool object for multiprocessing / MPI
+        from gala.util import get_pool # TODO: moved to schwimmbad
         pool = get_pool(mpi=args.mpi, **kwargs)
         if args.mpi:
             logger.info("|----------- Using MPI -----------|")
